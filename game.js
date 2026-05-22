@@ -1552,9 +1552,5 @@ function initGame(skipToParty) {
   animate();
 }
 
-document.getElementById("startBtn").addEventListener("click", () => { initGame(false); });
-
-// Auto-skip to celebration if displayParty=1
-if (new URLSearchParams(window.location.search).get("displayParty") === "1") {
-  initGame(true);
-}
+const _partyMode = new URLSearchParams(window.location.search).get("displayParty") === "1";
+document.getElementById("startBtn").addEventListener("click", () => { initGame(_partyMode); });
