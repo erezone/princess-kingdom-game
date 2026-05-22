@@ -951,11 +951,9 @@ window.addEventListener("keydown", (e) => {
 
         // Handle post-dialog actions
         if (gameState === "levelComplete") {
-          if (currentLevelIndex < levels.length - 1) {
-            loadLevel(currentLevelIndex + 1);
-          }
+          // Player must walk through the portal to proceed
         } else if (gameState === "victory") {
-          startCelebration();
+          // Player must walk through the portal to start celebration
         }
       } else {
         document.getElementById("dialog-text").textContent = dialogLines[dialogIndex];
@@ -1076,6 +1074,7 @@ function update(dt) {
             }, 500);
           } else {
             gameState = "victory";
+            spawnPortal();
             setTimeout(() => {
               showDialog(victoryDialog.dialog, victoryDialog.tts, "קסם הממלכה");
             }, 500);
@@ -1086,11 +1085,15 @@ function update(dt) {
   }
 
   // Portal interaction
-  if (portalMesh && gameState === "levelComplete" && !dialogActive) {
+  if (portalMesh && (gameState === "levelComplete" || gameState === "victory") && !dialogActive) {
     const dx = portalMesh.userData.mapX - camera.position.x;
     const dz = portalMesh.userData.mapZ - camera.position.z;
     if (Math.sqrt(dx * dx + dz * dz) < 1.5) {
-      loadLevel(currentLevelIndex + 1);
+      if (gameState === "victory") {
+        startCelebration();
+      } else {
+        loadLevel(currentLevelIndex + 1);
+      }
     }
   }
 
