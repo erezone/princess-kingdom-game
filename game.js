@@ -1592,7 +1592,7 @@ function animate() {
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
-document.getElementById("startBtn").addEventListener("click", () => {
+function initGame(skipToParty) {
   document.getElementById("start-screen").style.display = "none";
   document.getElementById("hud").style.display = "flex";
   document.getElementById("crosshair").style.display = "block";
@@ -1624,13 +1624,18 @@ document.getElementById("startBtn").addEventListener("click", () => {
 
   initTTS();
 
-  // Check for displayParty query parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("displayParty") === "1") {
-    loadLevel(0); // Need a level loaded for buildNPC to work
+  if (skipToParty) {
+    loadLevel(0);
     startCelebration();
   } else {
     loadLevel(0);
   }
   animate();
-});
+}
+
+document.getElementById("startBtn").addEventListener("click", () => { initGame(false); });
+
+// Auto-skip to celebration if displayParty=1
+if (new URLSearchParams(window.location.search).get("displayParty") === "1") {
+  initGame(true);
+}
