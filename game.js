@@ -658,61 +658,93 @@ function loadLevel(index) {
     }
   }
 
-  // Wall torches
+  // Wall torches — find nearest wall and attach
   for (const pos of level.torches) {
+    const tx = pos[0], tz = pos[2];
+    const gx = Math.floor(tx), gz = Math.floor(tz);
+
+    // Check 4 adjacent tiles to find the nearest wall
+    const dirs = [
+      { dx: 0, dz: -1, rot: 0 },          // wall to north → face south
+      { dx: 0, dz: 1,  rot: Math.PI },     // wall to south → face north
+      { dx: -1, dz: 0, rot: Math.PI / 2 }, // wall to west → face east
+      { dx: 1, dz: 0,  rot: -Math.PI / 2 },// wall to east → face west
+    ];
+
+    let wallDir = dirs[0];
+    let minDist = Infinity;
+    for (const d of dirs) {
+      const cx = gx + d.dx, cz = gz + d.dz;
+      if (cx >= 0 && cx < level.mapW && cz >= 0 && cz < level.mapH && level.map[cz][cx] !== 0) {
+        // Wall found — compute distance from torch to wall center
+        const wcx = cx + 0.5, wcz = cz + 0.5;
+        const dist = Math.abs(tx - wcx) + Math.abs(tz - wcz);
+        if (dist < minDist) { minDist = dist; wallDir = d; }
+      }
+    }
+
+    // Snap torch position to the wall surface
+    let snapX = tx, snapZ = tz;
+    if (wallDir.dx === 1) snapX = gx + 1 - 0.03;       // east wall
+    else if (wallDir.dx === -1) snapX = gx + 0.03;      // west wall
+    if (wallDir.dz === 1) snapZ = gz + 1 - 0.03;        // south wall
+    else if (wallDir.dz === -1) snapZ = gz + 0.03;      // north wall
+
     const light = new THREE.PointLight(0xff8833, 1.5, 8);
-    light.position.set(pos[0], pos[1] + 0.3, pos[2]);
+    light.position.set(snapX, 2.3, snapZ);
     scene.add(light);
     torchLights.push(light);
 
     const torchGroup = new THREE.Group();
-    torchGroup.position.set(pos[0], 0, pos[2]);
+    torchGroup.position.set(snapX, 0, snapZ);
+    torchGroup.rotation.y = wallDir.rot;
 
     const ironMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.7, roughness: 0.4 });
 
-    // Wall bracket — L-shaped iron mount
-    const backPlateGeo = new THREE.BoxGeometry(0.12, 0.25, 0.06);
+    // Wall bracket — backplate flush against wall (at z=0)
+    const backPlateGeo = new THREE.BoxGeometry(0.12, 0.25, 0.04);
     const backPlate = new THREE.Mesh(backPlateGeo, ironMat);
-    backPlate.position.y = 1.6;
+    backPlate.position.set(0, 1.6, 0);
     torchGroup.add(backPlate);
 
-    const bracketArmGeo = new THREE.BoxGeometry(0.06, 0.06, 0.25);
+    // Bracket arm sticking out from wall
+    const bracketArmGeo = new THREE.BoxGeometry(0.05, 0.05, 0.25);
     const bracketArm = new THREE.Mesh(bracketArmGeo, ironMat);
-    bracketArm.position.set(0, 1.55, 0.12);
+    bracketArm.position.set(0, 1.55, 0.14);
     torchGroup.add(bracketArm);
 
-    // Torch cup / holder
+    // Torch cup
     const cupGeo = new THREE.CylinderGeometry(0.07, 0.05, 0.1, 8);
     const cup = new THREE.Mesh(cupGeo, ironMat);
-    cup.position.set(0, 1.6, 0.25);
+    cup.position.set(0, 1.6, 0.27);
     torchGroup.add(cup);
 
     // Wooden handle
     const handleGeo = new THREE.CylinderGeometry(0.03, 0.035, 0.5, 6);
     const handleMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.9 });
     const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.position.set(0, 1.85, 0.25);
+    handle.position.set(0, 1.85, 0.27);
     torchGroup.add(handle);
 
     // Wrapped cloth at top
     const clothGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.12, 6);
     const clothMat = new THREE.MeshStandardMaterial({ color: 0x8a7050, roughness: 1.0 });
     const cloth = new THREE.Mesh(clothGeo, clothMat);
-    cloth.position.set(0, 2.05, 0.25);
+    cloth.position.set(0, 2.05, 0.27);
     torchGroup.add(cloth);
 
-    // Flame — larger, visible, teardrop-ish
+    // Flame
     const flameGeo = new THREE.ConeGeometry(0.06, 0.2, 6);
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
     const flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.set(0, 2.22, 0.25);
+    flame.position.set(0, 2.22, 0.27);
     torchGroup.add(flame);
 
     // Inner bright flame core
     const coreGeo = new THREE.ConeGeometry(0.03, 0.12, 5);
     const coreMat = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
     const core = new THREE.Mesh(coreGeo, coreMat);
-    core.position.set(0, 2.2, 0.25);
+    core.position.set(0, 2.2, 0.27);
     torchGroup.add(core);
 
     levelGroup.add(torchGroup);
