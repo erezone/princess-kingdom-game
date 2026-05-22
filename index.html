@@ -9,26 +9,36 @@
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+
     <div id="start-screen">
       <h1>👑 הרפתקת הנסיכה בממלכה 👑</h1>
-      <p>!חקרי את הממלכה הקסומה, דברי עם תושבים ואספי אבני חן</p>
+      <p class="subtitle">משחק גוף ראשון בסגנון רטרו</p>
+      <p>חקרי את הטירה, הכפר והיער הקסום — אספי את כל אבני החן!</p>
       <div class="controls-info">
-        <p><strong>:בקרה</strong></p>
-        <p>🎮 חצים / WASD — תנועה</p>
-        <p>🗣️ רווח — דיבור עם דמויות</p>
+        <p><strong>בקרה:</strong></p>
+        <p>W/S או ↑↓ — הליכה קדימה/אחורה</p>
+        <p>עכבר — הסתכלות (לחצי על המסך)</p>
+        <p>A/D או ←→ — סיבוב</p>
+        <p>רווח — דיבור עם דמויות</p>
+        <p>M — מפה</p>
       </div>
       <button id="startBtn">התחילי הרפתקה</button>
     </div>
+
     <div id="hud">
-      <div id="gem-count">💎 <span id="gems">0</span></div>
+      <div id="gem-count">💎 <span id="gems">0 / 10</span></div>
       <div id="zone-name"></div>
-      <div id="quest-tracker"></div>
     </div>
+
+    <div id="interact-hint" class="hidden">לחצי רווח לדבר 🗣️</div>
+
     <div id="dialog-box" class="hidden">
       <div id="dialog-speaker"></div>
       <div id="dialog-text"></div>
       <div id="dialog-prompt">לחצי רווח להמשיך</div>
     </div>
+
+    <div id="crosshair">+</div>
   </div>
   <script src="game.js"></script>
 </body>

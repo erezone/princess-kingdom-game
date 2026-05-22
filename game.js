@@ -1,422 +1,182 @@
-// ─── Constants ───────────────────────────────────────────────────────────────
-const TILE = 40;
-const COLS = 20;
-const ROWS = 15;
-const WIDTH = COLS * TILE;
-const HEIGHT = ROWS * TILE;
+// ═══════════════════════════════════════════════════════════════════════════════
+// Princess Kingdom Adventure — First-Person Raycasting Engine
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── World Zones ─────────────────────────────────────────────────────────────
-// Legend: 0=grass, 1=wall/tree, 2=water, 3=path, 4=flower, 5=bridge,
-//         6=castle_floor, 7=castle_wall, 8=door
-const ZONES = {
-  castle: {
-    name: "הטירה המלכותית",
-    bgColor: "#3b2a5e",
-    map: [
-      [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7],
-      [7,6,6,6,6,7,6,6,6,6,6,6,6,6,7,6,6,6,6,7],
-      [7,6,6,6,6,7,6,6,6,6,6,6,6,6,7,6,6,6,6,7],
-      [7,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,7],
-      [7,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,7],
-      [7,7,7,6,6,7,6,6,6,6,6,6,6,6,7,6,6,7,7,7],
-      [7,6,6,6,6,7,6,6,6,6,6,6,6,6,7,6,6,6,6,7],
-      [7,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,7],
-      [7,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,7],
-      [7,6,6,6,6,7,6,6,6,6,6,6,6,6,7,6,6,6,6,7],
-      [7,7,7,7,7,7,6,6,6,6,6,6,6,6,7,7,7,7,7,7],
-      [7,7,7,7,7,7,6,6,6,6,6,6,6,6,7,7,7,7,7,7],
-      [7,7,7,7,7,7,6,6,6,8,8,6,6,6,7,7,7,7,7,7],
-      [7,7,7,7,7,7,6,6,6,8,8,6,6,6,7,7,7,7,7,7],
-      [7,7,7,7,7,7,7,7,7,8,8,7,7,7,7,7,7,7,7,7],
-    ],
-    exits: [{ x: 9, y: 14, to: "village", spawnX: 10, spawnY: 1 },
-            { x: 10, y: 14, to: "village", spawnX: 10, spawnY: 1 }],
-    npcs: [
-      { x: 3, y: 3, sprite: "king", name: "המלך אלדריק",
-        dialog: ["!ברוכה הבאה, נסיכה יקרה שלי", "הממלכה זקוקה לעזרתך.", "התושבים מדווחים על אורות מוזרים ביער הקסום.", "!אספי את אבני החן הקסומות כדי להחזיר את השלום"] },
-      { x: 16, y: 3, sprite: "advisor", name: "היועצת המלכותית מירה",
-        dialog: ["הוד מעלתך, אבני החן פזורות ברחבי הממלכה.", ".דברי עם התושבים — אולי הם יודעים היכן למצוא אותן"] },
-    ],
-    gems: [{ x: 3, y: 8 }, { x: 16, y: 8 }],
-  },
+// ─── Config ──────────────────────────────────────────────────────────────────
+const W = 800;
+const H = 600;
+const MAP_W = 24;
+const MAP_H = 24;
+const MOVE_SPEED = 3.0;
+const ROT_SPEED = 2.5;
+const MOUSE_SENS = 0.002;
+const COLLISION_R = 0.25;
+const INTERACT_DIST = 1.5;
+const GEM_COLLECT_DIST = 0.7;
 
-  village: {
-    name: "הכפר הנעים",
-    bgColor: "#2d5a27",
-    map: [
-      [1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1],
-      [1,0,4,0,0,1,1,0,0,3,3,0,0,1,1,0,0,4,0,1],
-      [1,0,0,0,0,1,1,0,0,3,3,0,0,1,1,0,0,0,0,1],
-      [1,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1],
-      [1,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,1],
-      [1,0,0,0,0,0,0,3,0,0,0,0,3,0,0,0,0,0,0,1],
-      [1,0,4,0,0,0,0,3,0,4,4,0,3,0,0,0,0,4,0,1],
-      [1,0,0,0,0,0,0,3,0,0,0,0,3,0,0,0,0,0,0,1],
-      [1,0,0,0,0,0,0,3,3,3,3,3,3,0,0,0,0,0,0,1],
-      [1,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1],
-      [1,0,0,1,1,0,0,0,0,3,3,0,0,0,0,1,1,0,0,1],
-      [1,0,0,1,1,0,0,0,0,3,3,0,0,0,0,1,1,0,0,1],
-      [1,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1],
-    ],
-    exits: [{ x: 9, y: 0, to: "castle", spawnX: 9, spawnY: 13 },
-            { x: 10, y: 0, to: "castle", spawnX: 10, spawnY: 13 },
-            { x: 9, y: 14, to: "forest", spawnX: 10, spawnY: 1 },
-            { x: 10, y: 14, to: "forest", spawnX: 10, spawnY: 1 }],
-    npcs: [
-      { x: 4, y: 6, sprite: "baker", name: "האופה רוזלינד",
-        dialog: ["!אוי, נסיכה! תודה לאל שבאת", "ראיתי אבן חן נוצצת ליד המזרקה הישנה.", "!היזהרי ביער — הוא מלא הפתעות"] },
-      { x: 15, y: 6, sprite: "guard", name: "השומר תומס",
-        dialog: ["!הוד מעלתך! השביל דרומה ליער פתוח", "שמעתי לחישות על אוצר חבוי בין העצים.", "!הישארי על השבילים ותהיי בטוחה"] },
-      { x: 10, y: 9, sprite: "child", name: "אלרה הקטנה",
-        dialog: ["!נסיכה! נסיכה! את כל כך יפה", "מצאתי אבן נוצצת אבל אמא אמרה להשאיר אותה.", "?את תמצאי את כל אבני החן הקסומות? בבקשה"] },
-    ],
-    gems: [{ x: 9, y: 7 }, { x: 2, y: 2 }, { x: 17, y: 7 }],
-  },
-
-  forest: {
-    name: "היער הקסום",
-    bgColor: "#0d2b0d",
-    map: [
-      [1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1],
-      [1,0,0,1,0,0,0,1,0,3,3,0,1,0,0,0,1,0,0,1],
-      [1,0,0,0,0,4,0,0,0,3,3,0,0,0,4,0,0,0,0,1],
-      [1,1,0,0,0,0,0,0,3,3,3,3,0,0,0,0,0,0,1,1],
-      [1,0,0,0,1,0,0,3,3,0,0,3,3,0,0,1,0,0,0,1],
-      [1,0,4,0,0,0,0,3,0,0,0,0,3,0,0,0,0,4,0,1],
-      [1,0,0,0,0,0,0,3,0,1,1,0,3,0,0,0,0,0,0,1],
-      [1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1],
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-      [1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-      [1,0,4,0,0,0,0,0,4,0,0,4,0,0,0,0,0,4,0,1],
-      [1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-      [1,1,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,1,1],
-      [1,0,0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,2,2,2,2,2,2,1,1,1,1,1,1,1],
-    ],
-    exits: [{ x: 9, y: 0, to: "village", spawnX: 9, spawnY: 13 },
-            { x: 10, y: 0, to: "village", spawnX: 10, spawnY: 13 }],
-    npcs: [
-      { x: 5, y: 5, sprite: "fairy", name: "פיית היער לומה",
-        dialog: ["!✨ ברוכה הבאה ליער הקסום, נסיכה", "העצים העתיקים מחזיקים סודות רבים.", "!אספי את כל אבני החן כדי להסיר את הצל מהארץ הזו", ".הקסם מתחזק עם כל אבן חן שאת מוצאת"] },
-      { x: 14, y: 9, sprite: "hermit", name: "הנזיר הזקן סדריק",
-        dialog: ["!אה, הנסיכה מעזה להיכנס ליער העמוק", "חייתי כאן עשרות שנים, צופה ביער משתנה.", "?אבני החן פועמות באנרגיה — את מרגישה את זה", ".אספי את כולן והיער ישיר שוב"] },
-    ],
-    gems: [{ x: 2, y: 10 }, { x: 17, y: 10 }, { x: 9, y: 5 }, { x: 11, y: 5 }, { x: 8, y: 10 }],
-  },
+// ─── Wall types ──────────────────────────────────────────────────────────────
+// 0 = empty, 1 = castle stone, 2 = castle stone dark, 3 = wood,
+// 4 = tree, 5 = hedge, 6 = castle door trim, 7 = dark stone
+const WALL_COLORS = {
+  1: { r: 140, g: 130, b: 155 }, // castle stone
+  2: { r: 100, g: 90, b: 120 },  // dark castle stone
+  3: { r: 160, g: 120, b: 70 },  // wood / village buildings
+  4: { r: 30, g: 90, b: 30 },    // trees
+  5: { r: 50, g: 120, b: 50 },   // hedge
+  6: { r: 120, g: 80, b: 50 },   // door trim
+  7: { r: 60, g: 55, b: 75 },    // dark dungeon stone
 };
 
-// ─── Tile rendering ──────────────────────────────────────────────────────────
-const TILE_COLORS = {
-  0: "#4a8c3f",  // grass
-  1: "#2d5a27",  // tree/wall
-  2: "#2a6496",  // water
-  3: "#c4a35a",  // path
-  4: "#4a8c3f",  // flower (grass base)
-  5: "#8B7355",  // bridge
-  6: "#6b5b8a",  // castle floor
-  7: "#3b2a5e",  // castle wall
-  8: "#8B7355",  // door
+// ─── World Map ───────────────────────────────────────────────────────────────
+// Castle (top-left), Village (top-right & center), Forest (bottom)
+// prettier-ignore
+const worldMap = [
+  [2,2,2,2,2,2,2,2,1,1,1,1,1,1,4,4,4,4,4,4,4,4,4,4],
+  [2,0,0,0,0,0,0,2,1,0,0,0,0,1,4,0,0,0,0,0,0,0,0,4],
+  [2,0,0,0,0,0,0,2,1,0,0,0,0,1,4,0,0,0,0,0,0,0,0,4],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,1,4,0,0,4,4,0,0,0,0,4],
+  [2,0,0,0,0,0,0,2,1,0,0,0,0,0,0,0,0,4,4,0,0,0,0,4],
+  [2,0,0,0,0,0,0,2,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,4],
+  [2,0,0,0,0,0,0,2,1,0,0,0,0,1,4,0,0,0,0,0,4,0,0,4],
+  [2,2,2,0,0,2,2,2,1,1,0,0,1,1,4,0,0,0,0,0,0,0,0,4],
+  [1,1,1,0,0,1,1,1,3,3,0,0,3,3,4,4,0,0,0,0,0,0,4,4],
+  [1,0,0,0,0,0,0,3,3,0,0,0,0,3,3,0,0,0,0,0,0,0,0,4],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,4],
+  [1,0,0,0,0,0,0,3,3,0,0,0,0,3,3,0,0,4,4,4,0,0,0,4],
+  [1,1,1,0,0,1,1,3,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,4],
+  [5,5,5,0,0,5,5,3,0,0,0,0,0,0,3,4,0,0,0,0,0,0,4,4],
+  [5,0,0,0,0,0,0,3,0,0,0,0,0,0,3,4,0,0,0,0,0,0,0,4],
+  [5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,4],
+  [5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,4],
+  [5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],
+  [5,0,0,0,0,0,0,3,0,0,0,0,0,0,3,4,0,0,0,0,0,4,0,4],
+  [5,0,0,0,0,0,0,3,0,0,0,0,0,0,3,4,0,0,0,0,0,0,0,4],
+  [5,5,5,0,0,5,5,3,3,0,0,0,0,3,3,4,0,0,0,0,0,0,0,4],
+  [5,5,5,5,5,5,5,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4],
+];
+
+// Zone detection based on player position
+function getZoneName(px, py) {
+  if (px < 8 && py < 8) return "הטירה המלכותית";
+  if (px < 8 && py >= 8 && py < 15) return "חצר הטירה";
+  if (px < 8 && py >= 15) return "הגינה המלכותית";
+  if (px >= 8 && px < 15 && py >= 8) return "כיכר הכפר";
+  if (px >= 8 && px < 15 && py < 8) return "שער הכפר";
+  if (px >= 15) return "היער הקסום";
+  return "הממלכה";
+}
+
+// ─── NPCs (sprites) ─────────────────────────────────────────────────────────
+const npcs = [
+  // Castle
+  { x: 4, y: 2, name: "המלך אלדריק", color: "#8e44ad", symbol: "👑", size: 1.0,
+    dialog: ["!ברוכה הבאה, נסיכה יקרה שלי", "הממלכה זקוקה לעזרתך.", "אורות מוזרים נראו ביער הקסום.", "!אספי את אבני החן הקסומות כדי להחזיר את השלום"] },
+  { x: 2, y: 5, name: "היועצת המלכותית מירה", color: "#2980b9", symbol: "📜", size: 0.9,
+    dialog: ["הוד מעלתך, אבני החן פזורות ברחבי הממלכה.", ".דברי עם התושבים — אולי הם יודעים היכן למצוא אותן"] },
+
+  // Village
+  { x: 10, y: 10, name: "האופה רוזלינד", color: "#e67e22", symbol: "🍞", size: 0.9,
+    dialog: ["!אוי, נסיכה! תודה לאל שבאת", "ראיתי אבן חן נוצצת ליד הגינה.", "!היזהרי ביער — הוא מלא הפתעות"] },
+  { x: 4, y: 11, name: "השומר תומס", color: "#7f8c8d", symbol: "⚔️", size: 1.0,
+    dialog: ["!הוד מעלתך! השביל דרומה ליער פתוח", "שמעתי לחישות על אוצר חבוי בין העצים.", "!הישארי על השבילים ותהיי בטוחה"] },
+  { x: 11, y: 14, name: "אלרה הקטנה", color: "#27ae60", symbol: "🧒", size: 0.7,
+    dialog: ["!נסיכה! נסיכה! את כל כך יפה", "מצאתי אבן נוצצת אבל אמא אמרה להשאיר אותה.", "?את תמצאי את כל אבני החן הקסומות? בבקשה"] },
+
+  // Garden
+  { x: 3, y: 18, name: "הגננת פלורה", color: "#2ecc71", symbol: "🌸", size: 0.9,
+    dialog: ["הגינה המלכותית מלאה בסודות!", "חפשי בין הפרחים — אבן חן מתחבאת כאן.", ".הפרחים לוחשים לי שאת בדרך הנכונה"] },
+
+  // Forest
+  { x: 19, y: 3, name: "פיית היער לומה", color: "#a569bd", symbol: "🧚", size: 0.8,
+    dialog: ["!✨ ברוכה הבאה ליער הקסום, נסיכה", "העצים העתיקים מחזיקים סודות רבים.", "!אספי את כל אבני החן כדי להסיר את הצל מהארץ הזו"] },
+  { x: 20, y: 19, name: "הנזיר הזקן סדריק", color: "#6e4b3a", symbol: "🧙", size: 1.0,
+    dialog: ["!אה, הנסיכה מעזה להיכנס ליער העמוק", "חייתי כאן עשרות שנים, צופה ביער משתנה.", ".אספי את כולן והיער ישיר שוב"] },
+];
+
+// ─── Gems ────────────────────────────────────────────────────────────────────
+const gems = [
+  // Castle
+  { x: 5.5, y: 4.5 },
+  { x: 1.5, y: 1.5 },
+  // Village
+  { x: 10.5, y: 12.5 },
+  { x: 4.5, y: 9.5 },
+  { x: 12.5, y: 10.5 },
+  // Garden
+  { x: 3.5, y: 20.5 },
+  { x: 1.5, y: 17.5 },
+  // Forest
+  { x: 16.5, y: 5.5 },
+  { x: 21.5, y: 11.5 },
+  { x: 19.5, y: 21.5 },
+];
+
+const collectedGems = new Set();
+
+// ─── Player State ────────────────────────────────────────────────────────────
+const player = {
+  x: 4.5,
+  y: 3.5,
+  dir: -Math.PI / 2, // facing "north" initially; will look into room
+  fov: Math.PI / 3,
 };
+// Start facing south (into the castle room)
+player.dir = Math.PI / 2;
 
-function drawTile(ctx, type, px, py) {
-  ctx.fillStyle = TILE_COLORS[type] || "#000";
-  ctx.fillRect(px, py, TILE, TILE);
+// ─── Input State ─────────────────────────────────────────────────────────────
+const keys = {};
+let pointerLocked = false;
+let showMinimap = true;
 
-  if (type === 1) {
-    // tree / forest wall
-    ctx.fillStyle = "#1a4a14";
-    ctx.beginPath();
-    ctx.arc(px + TILE / 2, py + TILE / 2 - 4, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#5a3a1a";
-    ctx.fillRect(px + 16, py + 22, 8, 14);
-    ctx.fillStyle = "#228B22";
-    ctx.beginPath();
-    ctx.arc(px + TILE / 2, py + TILE / 2 - 6, 14, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (type === 2) {
-    // water shimmer
-    ctx.fillStyle = "rgba(100,200,255,0.15)";
-    const offset = (Date.now() / 600 + px) % 20;
-    ctx.fillRect(px + offset, py + 8, 12, 2);
-    ctx.fillRect(px + (offset + 10) % TILE, py + 22, 10, 2);
-  } else if (type === 4) {
-    // flowers
-    const colors = ["#ff6b9d", "#ffb347", "#ff6b6b", "#c39bd3"];
-    const c = colors[(px + py) % colors.length];
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.arc(px + 12, py + 12, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(px + 28, py + 28, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffeb3b";
-    ctx.beginPath();
-    ctx.arc(px + 12, py + 12, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (type === 7) {
-    // castle wall detail
-    ctx.strokeStyle = "#2a1a4e";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 2, py + 2, TILE - 4, TILE / 2 - 2);
-    ctx.strokeRect(px + 2, py + TILE / 2 + 1, TILE - 4, TILE / 2 - 3);
-  } else if (type === 8) {
-    // door
-    ctx.fillStyle = "#A0522D";
-    ctx.fillRect(px + 4, py + 2, TILE - 8, TILE - 2);
-    ctx.fillStyle = "#ffd700";
-    ctx.beginPath();
-    ctx.arc(px + TILE / 2 + 6, py + TILE / 2, 2, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (type === 0) {
-    // grass detail
-    ctx.fillStyle = "rgba(60,120,50,0.4)";
-    ctx.fillRect(px + 8, py + 12, 2, 6);
-    ctx.fillRect(px + 24, py + 6, 2, 5);
-    ctx.fillRect(px + 16, py + 26, 2, 6);
-  } else if (type === 6) {
-    // castle floor tiles
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px, py, TILE, TILE);
-  }
-}
+// ─── Dialog State ────────────────────────────────────────────────────────────
+let dialogActive = false;
+let dialogLines = [];
+let dialogIndex = 0;
 
-// ─── Sprite Drawing ──────────────────────────────────────────────────────────
-function drawPrincess(ctx, x, y, frame, dir) {
-  const px = x * TILE;
-  const py = y * TILE;
+// ─── Canvas Setup ────────────────────────────────────────────────────────────
+let canvas, ctx;
+let imageData, buf;
+let zBuffer;
 
-  // Dress
-  ctx.fillStyle = "#d63384";
-  ctx.beginPath();
-  ctx.moveTo(px + 10, py + 18);
-  ctx.lineTo(px + 6, py + 36);
-  ctx.lineTo(px + 34, py + 36);
-  ctx.lineTo(px + 30, py + 18);
-  ctx.closePath();
-  ctx.fill();
-
-  // Dress highlight
-  ctx.fillStyle = "#e75a9d";
-  ctx.beginPath();
-  ctx.moveTo(px + 14, py + 18);
-  ctx.lineTo(px + 12, py + 32);
-  ctx.lineTo(px + 22, py + 32);
-  ctx.lineTo(px + 22, py + 18);
-  ctx.closePath();
-  ctx.fill();
-
-  // Head
-  ctx.fillStyle = "#fdd9b5";
-  ctx.beginPath();
-  ctx.arc(px + 20, py + 13, 9, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Hair
-  ctx.fillStyle = "#ffd700";
-  ctx.beginPath();
-  ctx.arc(px + 20, py + 10, 9, Math.PI, Math.PI * 2);
-  ctx.fill();
-  ctx.fillRect(px + 11, py + 8, 3, 12);
-  ctx.fillRect(px + 26, py + 8, 3, 12);
-
-  // Crown
-  ctx.fillStyle = "#ffd700";
-  ctx.fillRect(px + 14, py + 2, 12, 5);
-  ctx.fillStyle = "#ff6b6b";
-  ctx.fillRect(px + 15, py + 1, 2, 3);
-  ctx.fillRect(px + 19, py + 0, 2, 3);
-  ctx.fillRect(px + 23, py + 1, 2, 3);
-
-  // Eyes
-  ctx.fillStyle = "#2c3e50";
-  if (dir === "left") {
-    ctx.fillRect(px + 15, py + 12, 2, 2);
-    ctx.fillRect(px + 20, py + 12, 2, 2);
-  } else if (dir === "right") {
-    ctx.fillRect(px + 18, py + 12, 2, 2);
-    ctx.fillRect(px + 23, py + 12, 2, 2);
-  } else {
-    ctx.fillRect(px + 16, py + 12, 2, 2);
-    ctx.fillRect(px + 22, py + 12, 2, 2);
-  }
-
-  // Smile
-  ctx.strokeStyle = "#c0392b";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(px + 20, py + 15, 3, 0.1, Math.PI - 0.1);
-  ctx.stroke();
-
-  // Walking animation bounce
-  if (frame % 2 === 1) {
-    ctx.fillStyle = "#fdd9b5";
-    ctx.fillRect(px + 12, py + 34, 4, 4);
-    ctx.fillRect(px + 24, py + 34, 4, 4);
-  } else {
-    ctx.fillStyle = "#fdd9b5";
-    ctx.fillRect(px + 14, py + 34, 4, 4);
-    ctx.fillRect(px + 22, py + 34, 4, 4);
-  }
-}
-
-function drawNPC(ctx, npc) {
-  const px = npc.x * TILE;
-  const py = npc.y * TILE;
-  const sprites = {
-    king:    { body: "#4a0e8f", head: "#fdd9b5", hat: "#ffd700", detail: "#daa520" },
-    advisor: { body: "#1a5276", head: "#fdd9b5", hat: "#5dade2", detail: "#2e86c1" },
-    baker:   { body: "#f5f5dc", head: "#fdd9b5", hat: "#fff", detail: "#d4ac0d" },
-    guard:   { body: "#717d7e", head: "#fdd9b5", hat: "#515a5a", detail: "#c0392b" },
-    child:   { body: "#58d68d", head: "#fdd9b5", hat: null, detail: "#27ae60" },
-    fairy:   { body: "#a569bd", head: "#fdebd0", hat: null, detail: "#f9e79f" },
-    hermit:  { body: "#6e4b3a", head: "#fdd9b5", hat: "#4a3728", detail: "#8B7355" },
-  };
-  const s = sprites[npc.sprite] || sprites.guard;
-
-  // Body
-  ctx.fillStyle = s.body;
-  ctx.fillRect(px + 10, py + 16, 20, 20);
-
-  // Detail (belt/apron)
-  ctx.fillStyle = s.detail;
-  ctx.fillRect(px + 10, py + 26, 20, 3);
-
-  // Head
-  ctx.fillStyle = s.head;
-  ctx.beginPath();
-  ctx.arc(px + 20, py + 12, 8, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Eyes
-  ctx.fillStyle = "#2c3e50";
-  ctx.fillRect(px + 16, py + 11, 2, 2);
-  ctx.fillRect(px + 22, py + 11, 2, 2);
-
-  // Hat/hair
-  if (s.hat) {
-    ctx.fillStyle = s.hat;
-    ctx.fillRect(px + 12, py + 3, 16, 6);
-  }
-
-  // Interaction indicator
-  const bobble = Math.sin(Date.now() / 400 + npc.x) * 3;
-  ctx.fillStyle = "#ffd700";
-  ctx.font = "14px serif";
-  ctx.textAlign = "center";
-  ctx.fillText("❗", px + 20, py - 2 + bobble);
-}
-
-function drawGem(ctx, gx, gy) {
-  const px = gx * TILE + TILE / 2;
-  const py = gy * TILE + TILE / 2;
-  const pulse = Math.sin(Date.now() / 300 + gx * gy) * 3;
-
-  // Glow
-  ctx.fillStyle = "rgba(100, 200, 255, 0.2)";
-  ctx.beginPath();
-  ctx.arc(px, py, 14 + pulse, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Diamond shape
-  ctx.fillStyle = "#5dade2";
-  ctx.beginPath();
-  ctx.moveTo(px, py - 10);
-  ctx.lineTo(px + 8, py);
-  ctx.lineTo(px, py + 10);
-  ctx.lineTo(px - 8, py);
-  ctx.closePath();
-  ctx.fill();
-
-  // Highlight
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.beginPath();
-  ctx.moveTo(px, py - 10);
-  ctx.lineTo(px + 4, py - 2);
-  ctx.lineTo(px, py);
-  ctx.lineTo(px - 4, py - 2);
-  ctx.closePath();
-  ctx.fill();
-
-  // Sparkle
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(px - 3, py - 4, 1.5, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// ─── Game State ──────────────────────────────────────────────────────────────
-const game = {
-  canvas: null,
-  ctx: null,
-  running: false,
-  player: { x: 9, y: 6, dir: "down", frame: 0, moveTimer: 0 },
-  currentZone: "castle",
-  gems: 0,
-  totalGems: 0,
-  collectedGems: new Set(),
-  dialogActive: false,
-  dialogLines: [],
-  dialogIndex: 0,
-  dialogSpeaker: "",
-  keys: {},
-  moveDelay: 120, // ms between moves
-};
-
-// Count total gems
-for (const z of Object.values(ZONES)) game.totalGems += z.gems.length;
-
-function isWalkable(type) {
-  return type === 0 || type === 3 || type === 4 || type === 5 || type === 6 || type === 8;
-}
-
-function gemKey(zone, gx, gy) {
-  return `${zone}:${gx},${gy}`;
-}
-
-function getZone() {
-  return ZONES[game.currentZone];
-}
-
-// ─── Input ───────────────────────────────────────────────────────────────────
+// ─── Input Handlers ──────────────────────────────────────────────────────────
 window.addEventListener("keydown", (e) => {
-  game.keys[e.key] = true;
+  keys[e.key.toLowerCase()] = true;
 
   if (e.key === " ") {
     e.preventDefault();
-    if (game.dialogActive) {
-      game.dialogIndex++;
-      if (game.dialogIndex >= game.dialogLines.length) {
-        game.dialogActive = false;
+    if (dialogActive) {
+      dialogIndex++;
+      if (dialogIndex >= dialogLines.length) {
+        dialogActive = false;
         document.getElementById("dialog-box").classList.add("hidden");
       } else {
-        document.getElementById("dialog-text").textContent = game.dialogLines[game.dialogIndex];
+        document.getElementById("dialog-text").textContent = dialogLines[dialogIndex];
       }
     } else {
       tryTalk();
     }
   }
+
+  if (e.key.toLowerCase() === "m") {
+    showMinimap = !showMinimap;
+  }
 });
 
 window.addEventListener("keyup", (e) => {
-  game.keys[e.key] = false;
+  keys[e.key.toLowerCase()] = false;
 });
 
 function tryTalk() {
-  const zone = getZone();
-  const p = game.player;
-  for (const npc of zone.npcs) {
-    const dx = Math.abs(npc.x - p.x);
-    const dy = Math.abs(npc.y - p.y);
-    if (dx + dy <= 2) {
-      game.dialogActive = true;
-      game.dialogLines = npc.dialog;
-      game.dialogIndex = 0;
-      game.dialogSpeaker = npc.name;
+  for (const npc of npcs) {
+    const dx = npc.x - player.x;
+    const dy = npc.y - player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < INTERACT_DIST) {
+      dialogActive = true;
+      dialogLines = npc.dialog;
+      dialogIndex = 0;
       const box = document.getElementById("dialog-box");
       box.classList.remove("hidden");
       document.getElementById("dialog-speaker").textContent = npc.name;
@@ -426,133 +186,461 @@ function tryTalk() {
   }
 }
 
-// ─── Update ──────────────────────────────────────────────────────────────────
+// ─── Mouse Look ──────────────────────────────────────────────────────────────
+function onMouseMove(e) {
+  if (!pointerLocked) return;
+  player.dir += e.movementX * MOUSE_SENS;
+}
+
+// ─── Movement & Collision ────────────────────────────────────────────────────
 function update(dt) {
-  if (game.dialogActive) return;
+  if (dialogActive) return;
 
-  game.player.moveTimer -= dt;
-  if (game.player.moveTimer > 0) return;
+  // Rotation via keyboard
+  if (keys["arrowleft"] || keys["q"]) player.dir -= ROT_SPEED * dt;
+  if (keys["arrowright"] || keys["e"]) player.dir += ROT_SPEED * dt;
 
-  let dx = 0, dy = 0;
-  if (game.keys["ArrowUp"] || game.keys["w"] || game.keys["W"]) { dy = -1; game.player.dir = "up"; }
-  else if (game.keys["ArrowDown"] || game.keys["s"] || game.keys["S"]) { dy = 1; game.player.dir = "down"; }
-  else if (game.keys["ArrowLeft"] || game.keys["a"] || game.keys["A"]) { dx = -1; game.player.dir = "left"; }
-  else if (game.keys["ArrowRight"] || game.keys["d"] || game.keys["D"]) { dx = 1; game.player.dir = "right"; }
+  // Movement
+  let moveX = 0, moveY = 0;
+  const cos = Math.cos(player.dir);
+  const sin = Math.sin(player.dir);
 
-  if (dx === 0 && dy === 0) return;
+  if (keys["arrowup"] || keys["w"]) { moveX += cos; moveY += sin; }
+  if (keys["arrowdown"] || keys["s"]) { moveX -= cos; moveY -= sin; }
 
-  const nx = game.player.x + dx;
-  const ny = game.player.y + dy;
-  const zone = getZone();
+  // Strafe
+  if (keys["a"]) { moveX += sin; moveY -= cos; }
+  if (keys["d"]) { moveX -= sin; moveY += cos; }
 
-  // Check zone exit
-  for (const exit of zone.exits) {
-    if (nx === exit.x && ny === exit.y) {
-      game.currentZone = exit.to;
-      game.player.x = exit.spawnX;
-      game.player.y = exit.spawnY;
-      game.player.moveTimer = game.moveDelay;
-      game.player.frame++;
-      updateHUD();
-      return;
+  if (moveX !== 0 || moveY !== 0) {
+    const len = Math.sqrt(moveX * moveX + moveY * moveY);
+    moveX = (moveX / len) * MOVE_SPEED * dt;
+    moveY = (moveY / len) * MOVE_SPEED * dt;
+
+    // Separate axis collision with radius
+    const nx = player.x + moveX;
+    const ny = player.y + moveY;
+
+    if (worldMap[Math.floor(player.y)][Math.floor(nx + COLLISION_R * Math.sign(moveX))] === 0) {
+      player.x = nx;
+    }
+    if (worldMap[Math.floor(ny + COLLISION_R * Math.sign(moveY))][Math.floor(player.x)] === 0) {
+      player.y = ny;
     }
   }
 
-  // Bounds & collision
-  if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
-  const tile = zone.map[ny][nx];
+  // Collect gems
+  for (let i = 0; i < gems.length; i++) {
+    if (collectedGems.has(i)) continue;
+    const dx = gems[i].x - player.x;
+    const dy = gems[i].y - player.y;
+    if (Math.sqrt(dx * dx + dy * dy) < GEM_COLLECT_DIST) {
+      collectedGems.add(i);
+      updateHUD();
 
-  // Check NPC collision
-  for (const npc of zone.npcs) {
-    if (npc.x === nx && npc.y === ny) return;
+      if (collectedGems.size >= gems.length) {
+        setTimeout(() => {
+          dialogActive = true;
+          dialogLines = [
+            "✨ !אספת את כל אבני החן הקסומות ✨",
+            "!הממלכה שבה לתפארתה המלאה",
+            "!העם חוגג את הנסיכה האהובה",
+            "🎉 !כל הכבוד — סיימת את ההרפתקה 🎉",
+          ];
+          dialogIndex = 0;
+          const box = document.getElementById("dialog-box");
+          box.classList.remove("hidden");
+          document.getElementById("dialog-speaker").textContent = "✨ קסם הממלכה ✨";
+          document.getElementById("dialog-text").textContent = dialogLines[0];
+        }, 200);
+      }
+    }
   }
 
-  if (!isWalkable(tile)) return;
+  // Interact hint
+  let nearNPC = false;
+  for (const npc of npcs) {
+    const dx = npc.x - player.x;
+    const dy = npc.y - player.y;
+    if (Math.sqrt(dx * dx + dy * dy) < INTERACT_DIST) { nearNPC = true; break; }
+  }
+  const hint = document.getElementById("interact-hint");
+  if (nearNPC && !dialogActive) hint.classList.remove("hidden");
+  else hint.classList.add("hidden");
 
-  game.player.x = nx;
-  game.player.y = ny;
-  game.player.moveTimer = game.moveDelay;
-  game.player.frame++;
+  // Zone name
+  document.getElementById("zone-name").textContent = getZoneName(player.x, player.y);
+}
 
-  // Gem collection
-  const gk = gemKey(game.currentZone, nx, ny);
-  if (!game.collectedGems.has(gk)) {
-    for (const g of zone.gems) {
-      if (g.x === nx && g.y === ny) {
-        game.collectedGems.add(gk);
-        game.gems++;
-        updateHUD();
+function updateHUD() {
+  document.getElementById("gems").textContent = `${collectedGems.size} / ${gems.length}`;
+}
 
-        if (game.gems >= game.totalGems) {
-          setTimeout(() => {
-            game.dialogActive = true;
-            game.dialogLines = [
-              "✨ !אספת את כל אבני החן הקסומות ✨",
-              "!הממלכה שבה לתפארתה המלאה",
-              "!העם חוגג את הנסיכה האהובה",
-              "🎉 !כל הכבוד — סיימת את ההרפתקה 🎉"
-            ];
-            game.dialogIndex = 0;
-            game.dialogSpeaker = "✨ קסם הממלכה ✨";
-            const box = document.getElementById("dialog-box");
-            box.classList.remove("hidden");
-            document.getElementById("dialog-speaker").textContent = game.dialogSpeaker;
-            document.getElementById("dialog-text").textContent = game.dialogLines[0];
-          }, 200);
+// ─── Raycasting Renderer ────────────────────────────────────────────────────
+function render() {
+  const data = imageData.data;
+
+  // Clear to black
+  data.fill(0);
+
+  // Draw ceiling and floor gradients
+  for (let y = 0; y < H; y++) {
+    const t = y / H;
+    let r, g, b;
+    if (y < H / 2) {
+      // Ceiling
+      const ct = 1 - (y / (H / 2));
+      r = Math.floor(15 + ct * 20);
+      g = Math.floor(10 + ct * 15);
+      b = Math.floor(30 + ct * 40);
+    } else {
+      // Floor
+      const ft = (y - H / 2) / (H / 2);
+      r = Math.floor(20 + ft * 40);
+      g = Math.floor(18 + ft * 30);
+      b = Math.floor(15 + ft * 20);
+    }
+    for (let x = 0; x < W; x++) {
+      const idx = (y * W + x) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255;
+    }
+  }
+
+  // Raycasting
+  zBuffer = new Float64Array(W);
+  const halfFov = player.fov / 2;
+
+  for (let x = 0; x < W; x++) {
+    const cameraX = 2 * x / W - 1;
+    const rayDirX = Math.cos(player.dir) + Math.cos(player.dir - Math.PI / 2) * cameraX * Math.tan(halfFov);
+    const rayDirY = Math.sin(player.dir) + Math.sin(player.dir - Math.PI / 2) * cameraX * Math.tan(halfFov);
+
+    let mapX = Math.floor(player.x);
+    let mapY = Math.floor(player.y);
+
+    const deltaDistX = Math.abs(1 / rayDirX);
+    const deltaDistY = Math.abs(1 / rayDirY);
+
+    let stepX, stepY;
+    let sideDistX, sideDistY;
+
+    if (rayDirX < 0) {
+      stepX = -1;
+      sideDistX = (player.x - mapX) * deltaDistX;
+    } else {
+      stepX = 1;
+      sideDistX = (mapX + 1.0 - player.x) * deltaDistX;
+    }
+    if (rayDirY < 0) {
+      stepY = -1;
+      sideDistY = (player.y - mapY) * deltaDistY;
+    } else {
+      stepY = 1;
+      sideDistY = (mapY + 1.0 - player.y) * deltaDistY;
+    }
+
+    // DDA
+    let hit = false;
+    let side = 0;
+    let wallType = 1;
+
+    while (!hit) {
+      if (sideDistX < sideDistY) {
+        sideDistX += deltaDistX;
+        mapX += stepX;
+        side = 0;
+      } else {
+        sideDistY += deltaDistY;
+        mapY += stepY;
+        side = 1;
+      }
+      if (mapX < 0 || mapX >= MAP_W || mapY < 0 || mapY >= MAP_H) { hit = true; wallType = 1; break; }
+      if (worldMap[mapY][mapX] > 0) {
+        hit = true;
+        wallType = worldMap[mapY][mapX];
+      }
+    }
+
+    // Perpendicular distance (fisheye correction)
+    let perpWallDist;
+    if (side === 0) {
+      perpWallDist = (mapX - player.x + (1 - stepX) / 2) / rayDirX;
+    } else {
+      perpWallDist = (mapY - player.y + (1 - stepY) / 2) / rayDirY;
+    }
+    if (perpWallDist < 0.01) perpWallDist = 0.01;
+
+    zBuffer[x] = perpWallDist;
+
+    // Wall height
+    const lineHeight = Math.floor(H / perpWallDist);
+    let drawStart = Math.floor(-lineHeight / 2 + H / 2);
+    let drawEnd = Math.floor(lineHeight / 2 + H / 2);
+    if (drawStart < 0) drawStart = 0;
+    if (drawEnd >= H) drawEnd = H - 1;
+
+    // Wall color with distance shading and side darkening
+    const wc = WALL_COLORS[wallType] || WALL_COLORS[1];
+    const shade = Math.min(1, 1.2 / (1 + perpWallDist * 0.15));
+    const sideMul = side === 1 ? 0.7 : 1.0;
+
+    // Wall texture pattern
+    let wallX;
+    if (side === 0) wallX = player.y + perpWallDist * rayDirY;
+    else wallX = player.x + perpWallDist * rayDirX;
+    wallX -= Math.floor(wallX);
+
+    for (let y = drawStart; y <= drawEnd; y++) {
+      const idx = (y * W + x) * 4;
+      // Simple "brick" pattern
+      const texY = (y - (-lineHeight / 2 + H / 2)) / lineHeight;
+      let patMul = 1.0;
+      if (wallType === 1 || wallType === 2 || wallType === 7) {
+        // Stone brick pattern
+        const brickRow = Math.floor(texY * 4);
+        const offset = (brickRow % 2) * 0.5;
+        const brickCol = (wallX + offset) % 1.0;
+        if (texY * 4 % 1 < 0.05 || brickCol < 0.03) patMul = 0.6;
+      } else if (wallType === 3 || wallType === 6) {
+        // Wood grain
+        if (Math.abs(Math.sin(texY * 30 + wallX * 5)) < 0.1) patMul = 0.85;
+      } else if (wallType === 4) {
+        // Tree bark / leaves
+        const n = Math.sin(texY * 20) * Math.cos(wallX * 15);
+        patMul = 0.85 + n * 0.15;
+      }
+
+      data[idx] = Math.floor(wc.r * shade * sideMul * patMul);
+      data[idx + 1] = Math.floor(wc.g * shade * sideMul * patMul);
+      data[idx + 2] = Math.floor(wc.b * shade * sideMul * patMul);
+      data[idx + 3] = 255;
+    }
+  }
+
+  // ─── Sprite Rendering (NPCs + Gems) ─────────────────────────────────────
+  const allSprites = [];
+
+  for (const npc of npcs) {
+    const dx = npc.x - player.x;
+    const dy = npc.y - player.y;
+    allSprites.push({
+      x: npc.x, y: npc.y,
+      dist: dx * dx + dy * dy,
+      type: "npc",
+      ref: npc,
+    });
+  }
+
+  for (let i = 0; i < gems.length; i++) {
+    if (collectedGems.has(i)) continue;
+    const g = gems[i];
+    const dx = g.x - player.x;
+    const dy = g.y - player.y;
+    allSprites.push({
+      x: g.x, y: g.y,
+      dist: dx * dx + dy * dy,
+      type: "gem",
+      ref: g,
+      index: i,
+    });
+  }
+
+  // Sort back to front
+  allSprites.sort((a, b) => b.dist - a.dist);
+
+  const dirX = Math.cos(player.dir);
+  const dirY = Math.sin(player.dir);
+  const planeX = Math.cos(player.dir - Math.PI / 2) * Math.tan(player.fov / 2);
+  const planeY = Math.sin(player.dir - Math.PI / 2) * Math.tan(player.fov / 2);
+  const invDet = 1.0 / (planeX * dirY - dirX * planeY);
+
+  for (const sprite of allSprites) {
+    const sx = sprite.x - player.x;
+    const sy = sprite.y - player.y;
+
+    const transformX = invDet * (dirY * sx - dirX * sy);
+    const transformY = invDet * (-planeY * sx + planeX * sy);
+
+    if (transformY <= 0.1) continue;
+
+    const spriteScreenX = Math.floor((W / 2) * (1 + transformX / transformY));
+    const spriteSize = sprite.type === "gem" ? 0.4 : (sprite.ref.size || 1.0);
+    const spriteHeight = Math.abs(Math.floor(H / transformY * spriteSize));
+    const spriteWidth = spriteHeight;
+
+    const drawStartY = Math.floor(-spriteHeight / 2 + H / 2);
+    const drawEndY = drawStartY + spriteHeight;
+    const drawStartX = Math.floor(spriteScreenX - spriteWidth / 2);
+    const drawEndX = drawStartX + spriteWidth;
+
+    const shade = Math.min(1, 1.5 / (1 + transformY * 0.12));
+
+    if (sprite.type === "npc") {
+      drawNPCSprite(data, sprite.ref, drawStartX, drawEndX, drawStartY, drawEndY, spriteWidth, spriteHeight, transformY, shade);
+    } else {
+      drawGemSprite(data, drawStartX, drawEndX, drawStartY, drawEndY, spriteWidth, spriteHeight, transformY, shade);
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  // ─── Minimap ─────────────────────────────────────────────────────────────
+  if (showMinimap) {
+    drawMinimap();
+  }
+}
+
+// ─── NPC Sprite Drawing ─────────────────────────────────────────────────────
+function drawNPCSprite(data, npc, startX, endX, startY, endY, sw, sh, depth, shade) {
+  const bodyColor = hexToRGB(npc.color);
+
+  for (let x = startX; x < endX; x++) {
+    if (x < 0 || x >= W) continue;
+    if (depth >= zBuffer[x]) continue;
+
+    const tx = (x - startX) / sw;
+
+    for (let y = startY; y < endY; y++) {
+      if (y < 0 || y >= H) continue;
+
+      const ty = (y - startY) / sh;
+      const idx = (y * W + x) * 4;
+
+      // Simple humanoid shape
+      const cx = tx - 0.5;
+      const cy = ty - 0.5;
+
+      // Head (top portion)
+      if (ty < 0.35) {
+        const hx = cx;
+        const hy = (ty - 0.18);
+        if (hx * hx + hy * hy < 0.025) {
+          // Head - skin color
+          data[idx] = Math.floor(240 * shade);
+          data[idx + 1] = Math.floor(200 * shade);
+          data[idx + 2] = Math.floor(170 * shade);
+          data[idx + 3] = 255;
         }
-        break;
+      }
+      // Body
+      else if (ty < 0.75 && Math.abs(cx) < 0.2) {
+        data[idx] = Math.floor(bodyColor.r * shade);
+        data[idx + 1] = Math.floor(bodyColor.g * shade);
+        data[idx + 2] = Math.floor(bodyColor.b * shade);
+        data[idx + 3] = 255;
+      }
+      // Legs
+      else if (ty >= 0.75 && ty < 0.95) {
+        if ((cx > -0.15 && cx < -0.03) || (cx > 0.03 && cx < 0.15)) {
+          data[idx] = Math.floor(bodyColor.r * shade * 0.7);
+          data[idx + 1] = Math.floor(bodyColor.g * shade * 0.7);
+          data[idx + 2] = Math.floor(bodyColor.b * shade * 0.7);
+          data[idx + 3] = 255;
+        }
       }
     }
   }
 }
 
-function updateHUD() {
-  document.getElementById("gems").textContent = `${game.gems} / ${game.totalGems}`;
-  document.getElementById("zone-name").textContent = getZone().name;
-  document.getElementById("quest-tracker").textContent =
-    game.gems >= game.totalGems ? "🎉 המשימה הושלמה!" : `אבני חן נוספות ${game.totalGems - game.gems} מצאי 🔮`;
+// ─── Gem Sprite Drawing ─────────────────────────────────────────────────────
+function drawGemSprite(data, startX, endX, startY, endY, sw, sh, depth, shade) {
+  const pulse = Math.sin(Date.now() / 300) * 0.2 + 0.8;
+
+  for (let x = startX; x < endX; x++) {
+    if (x < 0 || x >= W) continue;
+    if (depth >= zBuffer[x]) continue;
+
+    const tx = (x - startX) / sw - 0.5;
+
+    for (let y = startY; y < endY; y++) {
+      if (y < 0 || y >= H) continue;
+
+      const ty = (y - startY) / sh - 0.5;
+
+      // Diamond shape
+      if (Math.abs(tx) + Math.abs(ty) < 0.35) {
+        const idx = (y * W + x) * 4;
+        const highlight = (tx < 0 && ty < 0) ? 1.3 : 1.0;
+        data[idx] = Math.floor(Math.min(255, 80 * shade * pulse * highlight));
+        data[idx + 1] = Math.floor(Math.min(255, 180 * shade * pulse * highlight));
+        data[idx + 2] = Math.floor(Math.min(255, 255 * shade * pulse * highlight));
+        data[idx + 3] = 255;
+      }
+    }
+  }
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
-function render() {
-  const { ctx } = game;
-  const zone = getZone();
+// ─── Minimap ─────────────────────────────────────────────────────────────────
+function drawMinimap() {
+  const mapSize = 5;
+  const mmX = W - MAP_W * mapSize - 10;
+  const mmY = 10;
 
-  // Draw tiles
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      drawTile(ctx, zone.map[y][x], x * TILE, y * TILE);
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(mmX - 2, mmY - 2, MAP_W * mapSize + 4, MAP_H * mapSize + 4);
+
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      const tile = worldMap[y][x];
+      if (tile === 0) {
+        ctx.fillStyle = "#1a1a2a";
+      } else {
+        const wc = WALL_COLORS[tile];
+        ctx.fillStyle = `rgb(${wc.r},${wc.g},${wc.b})`;
+      }
+      ctx.fillRect(mmX + x * mapSize, mmY + y * mapSize, mapSize, mapSize);
     }
   }
 
-  // Draw uncollected gems
-  for (const g of zone.gems) {
-    if (!game.collectedGems.has(gemKey(game.currentZone, g.x, g.y))) {
-      drawGem(ctx, g.x, g.y);
-    }
+  // Gems on minimap
+  for (let i = 0; i < gems.length; i++) {
+    if (collectedGems.has(i)) continue;
+    ctx.fillStyle = "#5dade2";
+    ctx.fillRect(mmX + gems[i].x * mapSize - 1, mmY + gems[i].y * mapSize - 1, 3, 3);
   }
 
-  // Draw NPCs
-  for (const npc of zone.npcs) {
-    drawNPC(ctx, npc);
+  // NPCs on minimap
+  for (const npc of npcs) {
+    ctx.fillStyle = "#ffd700";
+    ctx.fillRect(mmX + npc.x * mapSize - 1, mmY + npc.y * mapSize - 1, 3, 3);
   }
 
-  // Draw princess
-  drawPrincess(ctx, game.player.x, game.player.y, game.player.frame, game.player.dir);
+  // Player on minimap
+  ctx.fillStyle = "#ff4444";
+  const px = mmX + player.x * mapSize;
+  const py = mmY + player.y * mapSize;
+  ctx.beginPath();
+  ctx.arc(px, py, 3, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Exit indicators
-  for (const exit of zone.exits) {
-    const pulse = Math.sin(Date.now() / 500) * 0.3 + 0.5;
-    ctx.fillStyle = `rgba(255, 215, 0, ${pulse * 0.3})`;
-    ctx.fillRect(exit.x * TILE, exit.y * TILE, TILE, TILE);
-  }
+  // Direction line
+  ctx.strokeStyle = "#ff4444";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + Math.cos(player.dir) * 8, py + Math.sin(player.dir) * 8);
+  ctx.stroke();
+
+  ctx.globalAlpha = 1;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function hexToRGB(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
 }
 
 // ─── Game Loop ───────────────────────────────────────────────────────────────
 let lastTime = 0;
+
 function gameLoop(timestamp) {
-  if (!game.running) return;
-  const dt = timestamp - lastTime;
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
   lastTime = timestamp;
 
   update(dt);
@@ -564,14 +652,26 @@ function gameLoop(timestamp) {
 document.getElementById("startBtn").addEventListener("click", () => {
   document.getElementById("start-screen").style.display = "none";
   document.getElementById("hud").style.display = "flex";
+  document.getElementById("crosshair").style.display = "block";
 
-  game.canvas = document.getElementById("gameCanvas");
-  game.canvas.width = WIDTH;
-  game.canvas.height = HEIGHT;
-  game.ctx = game.canvas.getContext("2d");
-  game.running = true;
+  canvas = document.getElementById("gameCanvas");
+  canvas.width = W;
+  canvas.height = H;
+  ctx = canvas.getContext("2d");
+  imageData = ctx.createImageData(W, H);
+
+  // Pointer lock for mouse look
+  canvas.addEventListener("click", () => {
+    canvas.requestPointerLock();
+  });
+  document.addEventListener("pointerlockchange", () => {
+    pointerLocked = document.pointerLockElement === canvas;
+  });
+  document.addEventListener("mousemove", onMouseMove);
 
   updateHUD();
+  document.getElementById("zone-name").textContent = getZoneName(player.x, player.y);
+
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 });
