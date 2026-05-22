@@ -10,7 +10,7 @@ const HEIGHT = ROWS * TILE;
 //         6=castle_floor, 7=castle_wall, 8=door
 const ZONES = {
   castle: {
-    name: "Royal Castle",
+    name: "הטירה המלכותית",
     bgColor: "#3b2a5e",
     map: [
       [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7],
@@ -32,16 +32,16 @@ const ZONES = {
     exits: [{ x: 9, y: 14, to: "village", spawnX: 10, spawnY: 1 },
             { x: 10, y: 14, to: "village", spawnX: 10, spawnY: 1 }],
     npcs: [
-      { x: 3, y: 3, sprite: "king", name: "King Aldric",
-        dialog: ["Welcome, my dear princess!", "The kingdom needs your help.", "Villagers report strange lights in the Enchanted Forest.", "Collect magical gems to restore peace!"] },
-      { x: 16, y: 3, sprite: "advisor", name: "Royal Advisor Mira",
-        dialog: ["Your Highness, the gems are scattered across the kingdom.", "Talk to the villagers — they may know where to find them."] },
+      { x: 3, y: 3, sprite: "king", name: "המלך אלדריק",
+        dialog: ["!ברוכה הבאה, נסיכה יקרה שלי", "הממלכה זקוקה לעזרתך.", "התושבים מדווחים על אורות מוזרים ביער הקסום.", "!אספי את אבני החן הקסומות כדי להחזיר את השלום"] },
+      { x: 16, y: 3, sprite: "advisor", name: "היועצת המלכותית מירה",
+        dialog: ["הוד מעלתך, אבני החן פזורות ברחבי הממלכה.", ".דברי עם התושבים — אולי הם יודעים היכן למצוא אותן"] },
     ],
     gems: [{ x: 3, y: 8 }, { x: 16, y: 8 }],
   },
 
   village: {
-    name: "Cozy Village",
+    name: "הכפר הנעים",
     bgColor: "#2d5a27",
     map: [
       [1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1],
@@ -65,18 +65,18 @@ const ZONES = {
             { x: 9, y: 14, to: "forest", spawnX: 10, spawnY: 1 },
             { x: 10, y: 14, to: "forest", spawnX: 10, spawnY: 1 }],
     npcs: [
-      { x: 4, y: 6, sprite: "baker", name: "Baker Rosalind",
-        dialog: ["Oh, Princess! Thank goodness you're here!", "I saw a shimmering gem near the old fountain.", "Be careful in the forest — it's full of surprises!"] },
-      { x: 15, y: 6, sprite: "guard", name: "Guard Thomas",
-        dialog: ["Your Highness! The forest path to the south is open.", "I've heard whispers of treasure hidden among the trees.", "Stay on the paths and you'll be safe!"] },
-      { x: 10, y: 9, sprite: "child", name: "Little Elara",
-        dialog: ["Princess! Princess! You're so pretty!", "I found a sparkly rock but Mama said to leave it.", "Will you find all the magic gems? Please?"] },
+      { x: 4, y: 6, sprite: "baker", name: "האופה רוזלינד",
+        dialog: ["!אוי, נסיכה! תודה לאל שבאת", "ראיתי אבן חן נוצצת ליד המזרקה הישנה.", "!היזהרי ביער — הוא מלא הפתעות"] },
+      { x: 15, y: 6, sprite: "guard", name: "השומר תומס",
+        dialog: ["!הוד מעלתך! השביל דרומה ליער פתוח", "שמעתי לחישות על אוצר חבוי בין העצים.", "!הישארי על השבילים ותהיי בטוחה"] },
+      { x: 10, y: 9, sprite: "child", name: "אלרה הקטנה",
+        dialog: ["!נסיכה! נסיכה! את כל כך יפה", "מצאתי אבן נוצצת אבל אמא אמרה להשאיר אותה.", "?את תמצאי את כל אבני החן הקסומות? בבקשה"] },
     ],
     gems: [{ x: 9, y: 7 }, { x: 2, y: 2 }, { x: 17, y: 7 }],
   },
 
   forest: {
-    name: "Enchanted Forest",
+    name: "היער הקסום",
     bgColor: "#0d2b0d",
     map: [
       [1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1],
@@ -98,10 +98,10 @@ const ZONES = {
     exits: [{ x: 9, y: 0, to: "village", spawnX: 9, spawnY: 13 },
             { x: 10, y: 0, to: "village", spawnX: 10, spawnY: 13 }],
     npcs: [
-      { x: 5, y: 5, sprite: "fairy", name: "Forest Fairy Luma",
-        dialog: ["✨ Welcome to the Enchanted Forest, Princess!", "The ancient trees hold many secrets.", "Collect all the gems to lift the shadow from this land!", "The magic grows stronger with each gem you find."] },
-      { x: 14, y: 9, sprite: "hermit", name: "Old Hermit Cedric",
-        dialog: ["Ah, the princess ventures into the deep woods!", "I've lived here for decades, watching the forest change.", "The gems pulse with energy — can you feel it?", "Gather them all and the forest will sing once more."] },
+      { x: 5, y: 5, sprite: "fairy", name: "פיית היער לומה",
+        dialog: ["!✨ ברוכה הבאה ליער הקסום, נסיכה", "העצים העתיקים מחזיקים סודות רבים.", "!אספי את כל אבני החן כדי להסיר את הצל מהארץ הזו", ".הקסם מתחזק עם כל אבן חן שאת מוצאת"] },
+      { x: 14, y: 9, sprite: "hermit", name: "הנזיר הזקן סדריק",
+        dialog: ["!אה, הנסיכה מעזה להיכנס ליער העמוק", "חייתי כאן עשרות שנים, צופה ביער משתנה.", "?אבני החן פועמות באנרגיה — את מרגישה את זה", ".אספי את כולן והיער ישיר שוב"] },
     ],
     gems: [{ x: 2, y: 10 }, { x: 17, y: 10 }, { x: 9, y: 5 }, { x: 11, y: 5 }, { x: 8, y: 10 }],
   },
@@ -487,13 +487,13 @@ function update(dt) {
           setTimeout(() => {
             game.dialogActive = true;
             game.dialogLines = [
-              "✨ You collected all the magical gems! ✨",
-              "The kingdom is restored to its full glory!",
-              "The people celebrate their beloved princess!",
-              "🎉 Congratulations — You completed the adventure! 🎉"
+              "✨ !אספת את כל אבני החן הקסומות ✨",
+              "!הממלכה שבה לתפארתה המלאה",
+              "!העם חוגג את הנסיכה האהובה",
+              "🎉 !כל הכבוד — סיימת את ההרפתקה 🎉"
             ];
             game.dialogIndex = 0;
-            game.dialogSpeaker = "✨ Kingdom Magic ✨";
+            game.dialogSpeaker = "✨ קסם הממלכה ✨";
             const box = document.getElementById("dialog-box");
             box.classList.remove("hidden");
             document.getElementById("dialog-speaker").textContent = game.dialogSpeaker;
@@ -510,7 +510,7 @@ function updateHUD() {
   document.getElementById("gems").textContent = `${game.gems} / ${game.totalGems}`;
   document.getElementById("zone-name").textContent = getZone().name;
   document.getElementById("quest-tracker").textContent =
-    game.gems >= game.totalGems ? "🎉 Quest Complete!" : `🔮 Find ${game.totalGems - game.gems} more gems`;
+    game.gems >= game.totalGems ? "🎉 המשימה הושלמה!" : `אבני חן נוספות ${game.totalGems - game.gems} מצאי 🔮`;
 }
 
 // ─── Render ──────────────────────────────────────────────────────────────────

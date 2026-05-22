@@ -10,7 +10,8 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Arial Hebrew', 'Heebo';
+  direction: rtl;
   overflow: hidden;
 }
 
@@ -124,7 +125,7 @@ canvas {
   border-radius: 20px;
   font-size: 0.85em;
   max-width: 220px;
-  text-align: right;
+  text-align: left;
 }
 
 #dialog-box {

@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Princess Kingdom Adventure</title>
+  <title>הרפתקת הנסיכה בממלכה</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     <div id="start-screen">
-      <h1>👑 Princess Kingdom Adventure 👑</h1>
-      <p>Explore your magical kingdom, talk to villagers, and collect gems!</p>
+      <h1>👑 הרפתקת הנסיכה בממלכה 👑</h1>
+      <p>!חקרי את הממלכה הקסומה, דברי עם תושבים ואספי אבני חן</p>
       <div class="controls-info">
-        <p><strong>Controls:</strong></p>
-        <p>🎮 Arrow Keys / WASD — Move</p>
-        <p>🗣️ Space — Talk to villagers</p>
+        <p><strong>:בקרה</strong></p>
+        <p>🎮 חצים / WASD — תנועה</p>
+        <p>🗣️ רווח — דיבור עם דמויות</p>
       </div>
-      <button id="startBtn">Begin Adventure</button>
+      <button id="startBtn">התחילי הרפתקה</button>
     </div>
     <div id="hud">
       <div id="gem-count">💎 <span id="gems">0</span></div>
@@ -27,7 +27,7 @@
     <div id="dialog-box" class="hidden">
       <div id="dialog-speaker"></div>
       <div id="dialog-text"></div>
-      <div id="dialog-prompt">Press Space to continue</div>
+      <div id="dialog-prompt">לחצי רווח להמשיך</div>
     </div>
   </div>
   <script src="game.js"></script>
