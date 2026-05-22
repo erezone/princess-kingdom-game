@@ -335,6 +335,49 @@ let treeTrunks = []; // {x, z} positions for collision
 let gameState = "playing"; // playing | levelComplete | transitioning | victory | celebration
 let portalMesh = null;
 
+// ─── Sound Effects ───────────────────────────────────────────────────────────
+let sfxCtx = null;
+function getSfxCtx() {
+  if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return sfxCtx;
+}
+
+function playGemSound() {
+  try {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+
+    // Bright chime: two quick rising tones
+    const freqs = [1200, 1600, 2000];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now + i * 0.08);
+      gain.gain.linearRampToValueAtTime(0.18, now + i * 0.08 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.08);
+      osc.stop(now + i * 0.08 + 0.35);
+    });
+
+    // Sparkle shimmer
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(2400, now);
+    osc2.frequency.exponentialRampToValueAtTime(3200, now + 0.4);
+    gain2.gain.setValueAtTime(0.08, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + 0.55);
+  } catch (e) {}
+}
+
 // ─── Text-to-Speech ──────────────────────────────────────────────────────────
 let ttsVoice = null;
 let ttsReady = false;
@@ -1062,6 +1105,7 @@ function update(dt) {
         collectedGems.add(i);
         gemMeshes[i].visible = false;
         gemLights[i].intensity = 0;
+        playGemSound();
         updateHUD();
 
         // Check level complete
