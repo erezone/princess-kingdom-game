@@ -1349,109 +1349,16 @@ function startCelebration() {
 }
 
 function startCelebrationMusic() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    celebrationMusic = ctx;
-
-    // Simple festive melody using oscillators
-    const notes = [
-      // "כל הילדים קופצים רוקדים" — cheerful original melody
-      { f: 523, d: 0.3 }, // C5
-      { f: 523, d: 0.3 }, // C5
-      { f: 587, d: 0.3 }, // D5
-      { f: 659, d: 0.3 }, // E5
-      { f: 659, d: 0.3 }, // E5
-      { f: 587, d: 0.3 }, // D5
-      { f: 523, d: 0.3 }, // C5
-      { f: 587, d: 0.6 }, // D5
-      { f: 523, d: 0.3 }, // C5
-      { f: 523, d: 0.3 }, // C5
-      { f: 587, d: 0.3 }, // D5
-      { f: 659, d: 0.3 }, // E5
-      { f: 587, d: 0.3 }, // D5
-      { f: 523, d: 0.3 }, // C5
-      { f: 494, d: 0.6 }, // B4
-      { f: 523, d: 0.3 }, // C5
-      { f: 587, d: 0.3 }, // D5
-      { f: 587, d: 0.3 }, // D5
-      { f: 523, d: 0.3 }, // C5
-      { f: 494, d: 0.3 }, // B4
-      { f: 440, d: 0.3 }, // A4
-      { f: 440, d: 0.3 }, // A4
-      { f: 494, d: 0.3 }, // B4
-      { f: 523, d: 0.6 }, // C5
-      { f: 659, d: 0.3 }, // E5
-      { f: 587, d: 0.3 }, // D5
-      { f: 523, d: 0.3 }, // C5
-      { f: 494, d: 0.3 }, // B4
-      { f: 523, d: 0.3 }, // C5
-      { f: 587, d: 0.3 }, // D5
-      { f: 523, d: 0.8 }, // C5
-    ];
-
-    function playMelody(startTime) {
-      let t = startTime;
-      for (const note of notes) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "triangle";
-        osc.frequency.value = note.f;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.15, t + 0.05);
-        gain.gain.linearRampToValueAtTime(0.12, t + note.d * 0.7);
-        gain.gain.linearRampToValueAtTime(0, t + note.d);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t);
-        osc.stop(t + note.d + 0.05);
-        t += note.d;
-
-        // Add harmony (a fifth up, quieter)
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = "sine";
-        osc2.frequency.value = note.f * 1.5;
-        gain2.gain.setValueAtTime(0, t - note.d);
-        gain2.gain.linearRampToValueAtTime(0.05, t - note.d + 0.05);
-        gain2.gain.linearRampToValueAtTime(0, t);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start(t - note.d);
-        osc2.stop(t + 0.05);
-      }
-      // Loop the melody
-      setTimeout(() => {
-        if (celebrationActive) playMelody(ctx.currentTime + 0.5);
-      }, (t - startTime) * 1000 + 1000);
-    }
-
-    // Bass drum beat
-    function playBeat(startTime) {
-      const beatInterval = 0.6;
-      for (let i = 0; i < 32; i++) {
-        const t = startTime + i * beatInterval;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(80, t);
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t);
-        osc.stop(t + 0.25);
-      }
-      setTimeout(() => {
-        if (celebrationActive) playBeat(ctx.currentTime);
-      }, 32 * beatInterval * 1000);
-    }
-
-    playMelody(ctx.currentTime + 0.5);
-    playBeat(ctx.currentTime + 0.5);
-  } catch (e) {
-    console.log("Audio not available:", e);
-  }
+  // Embed a small YouTube player with the song
+  const yt = document.createElement("iframe");
+  yt.id = "celebration-yt";
+  yt.width = "280";
+  yt.height = "158";
+  yt.src = "https://www.youtube.com/embed/xmbmfDeEG-g?autoplay=1&loop=1&playlist=xmbmfDeEG-g";
+  yt.allow = "autoplay; encrypted-media";
+  yt.frameBorder = "0";
+  yt.style.cssText = "position:fixed;bottom:16px;left:16px;z-index:1000;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.6);opacity:0.92;";
+  document.body.appendChild(yt);
 }
 
 function spawnFirework() {
