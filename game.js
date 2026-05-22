@@ -519,25 +519,66 @@ function buildScene() {
 
     const group = new THREE.Group();
 
-    // Diamond shape (two pyramids)
-    const topGeo = new THREE.ConeGeometry(0.35, 0.45, 8);
-    const botGeo = new THREE.ConeGeometry(0.35, 0.25, 8);
-    const gemMat = new THREE.MeshStandardMaterial({
-      color: 0x4db8ff,
-      emissive: 0x2288cc,
-      emissiveIntensity: 0.5,
-      roughness: 0.2,
-      metalness: 0.6,
+    // Real diamond shape using custom BufferGeometry
+    // Top: wide crown with 8 facets tapering to a point at top
+    // Bottom: inverted point (pavilion)
+    const diamondGeo = new THREE.BufferGeometry();
+    const r = 0.3;      // radius at widest (girdle)
+    const topH = 0.25;  // crown height
+    const botH = 0.45;  // pavilion depth
+    const sides = 8;
+
+    const vertices = [];
+    const topPoint = [0, topH, 0];
+    const botPoint = [0, -botH, 0];
+
+    // Girdle vertices (ring at y=0)
+    const girdle = [];
+    for (let s = 0; s < sides; s++) {
+      const angle = (s / sides) * Math.PI * 2;
+      girdle.push([Math.cos(angle) * r, 0, Math.sin(angle) * r]);
+    }
+
+    // Crown triangles (top point to girdle)
+    for (let s = 0; s < sides; s++) {
+      const next = (s + 1) % sides;
+      vertices.push(...topPoint, ...girdle[s], ...girdle[next]);
+    }
+
+    // Pavilion triangles (bottom point to girdle, wound opposite)
+    for (let s = 0; s < sides; s++) {
+      const next = (s + 1) % sides;
+      vertices.push(...botPoint, ...girdle[next], ...girdle[s]);
+    }
+
+    diamondGeo.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    diamondGeo.computeVertexNormals();
+
+    const gemMat = new THREE.MeshPhysicalMaterial({
+      color: 0x44ccff,
+      emissive: 0x1166aa,
+      emissiveIntensity: 0.6,
+      roughness: 0.05,
+      metalness: 0.3,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05,
+      transparent: true,
+      opacity: 0.85,
     });
 
-    const top = new THREE.Mesh(topGeo, gemMat);
-    top.position.y = 0.1;
-    group.add(top);
+    const diamond = new THREE.Mesh(diamondGeo, gemMat);
+    diamond.scale.set(1.2, 1.2, 1.2);
+    group.add(diamond);
 
-    const bot = new THREE.Mesh(botGeo, gemMat);
-    bot.rotation.x = Math.PI;
-    bot.position.y = -0.06;
-    group.add(bot);
+    // Inner glow sphere
+    const glowGeo = new THREE.SphereGeometry(0.12, 8, 8);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0x88ddff,
+      transparent: true,
+      opacity: 0.4,
+    });
+    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+    group.add(glowMesh);
 
     group.position.set(g.x, 1.0, g.z);
     scene.add(group);
