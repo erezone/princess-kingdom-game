@@ -1346,39 +1346,6 @@ function startCelebration() {
 
   // Start music
   startCelebrationMusic();
-
-  // Sing the song after a short delay
-  setTimeout(() => {
-    const songLines = [
-      "כל הילדים קופצים, רוקדים,",
-      "צוחקים, משתוללים,",
-      "ביד אחת נניף דגלון,",
-      "אל השמים ננופף לשלום!",
-    ];
-    const songTTS = [
-      "כָּל הַיְלָדִים קוֹפְצִים, רוֹקְדִים,",
-      "צוֹחֲקִים, מִשְׁתּוֹלְלִים,",
-      "בְּיָד אַחַת נָנִיף דִּגְלוֹן,",
-      "אֶל הַשָּׁמַיִם נְנוֹפֵף לְשָׁלוֹם!",
-    ];
-
-    let lineIdx = 0;
-    function speakNextLine() {
-      if (lineIdx >= songLines.length) {
-        // Repeat the song
-        setTimeout(() => { lineIdx = 0; speakNextLine(); }, 3000);
-        return;
-      }
-      const utt = new SpeechSynthesisUtterance(songTTS[lineIdx]);
-      utt.lang = "he-IL";
-      utt.rate = 0.85;
-      utt.pitch = 1.2;
-      if (ttsVoice) utt.voice = ttsVoice;
-      utt.onend = () => { lineIdx++; setTimeout(speakNextLine, 800); };
-      speechSynthesis.speak(utt);
-    }
-    speakNextLine();
-  }, 2000);
 }
 
 function startCelebrationMusic() {
