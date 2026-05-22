@@ -1348,17 +1348,62 @@ function startCelebration() {
   startCelebrationMusic();
 }
 
+let ytPlayer = null;
 function startCelebrationMusic() {
-  // Embed a small YouTube player with the song
-  const yt = document.createElement("iframe");
-  yt.id = "celebration-yt";
-  yt.width = "280";
-  yt.height = "158";
-  yt.src = "https://www.youtube.com/embed/xmbmfDeEG-g?autoplay=1&loop=1&playlist=xmbmfDeEG-g";
-  yt.allow = "autoplay; encrypted-media";
-  yt.frameBorder = "0";
-  yt.style.cssText = "position:fixed;bottom:16px;left:16px;z-index:1000;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.6);opacity:0.92;";
-  document.body.appendChild(yt);
+  // Load YouTube IFrame API
+  if (!window.YT) {
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  }
+
+  // Create container div for the player
+  const container = document.createElement("div");
+  container.id = "yt-container";
+  container.style.cssText = "position:fixed;bottom:16px;left:16px;z-index:1000;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.6);overflow:hidden;";
+  const playerDiv = document.createElement("div");
+  playerDiv.id = "celebration-yt";
+  container.appendChild(playerDiv);
+  document.body.appendChild(container);
+
+  function createPlayer() {
+    ytPlayer = new YT.Player("celebration-yt", {
+      width: 280,
+      height: 158,
+      videoId: "xmbmfDeEG-g",
+      playerVars: {
+        autoplay: 1,
+        loop: 1,
+        playlist: "xmbmfDeEG-g",
+        mute: 1, // start muted so autoplay works
+      },
+      events: {
+        onReady: (e) => {
+          e.target.playVideo();
+          // Unmute after a short delay — user has already interacted with the page
+          setTimeout(() => {
+            e.target.unMute();
+            e.target.setVolume(80);
+          }, 500);
+        },
+      },
+    });
+  }
+
+  if (window.YT && window.YT.Player) {
+    createPlayer();
+  } else {
+    window.onYouTubeIframeAPIReady = createPlayer;
+  }
+
+  // Also unmute on any user click (fallback for strict browsers)
+  document.addEventListener("click", function unmuteYT() {
+    if (ytPlayer && ytPlayer.unMute) {
+      ytPlayer.unMute();
+      ytPlayer.setVolume(80);
+    }
+    document.removeEventListener("click", unmuteYT);
+  }, { once: true });
 }
 
 function spawnFirework() {
