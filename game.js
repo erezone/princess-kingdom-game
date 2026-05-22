@@ -332,7 +332,7 @@ let gemMeshes = [];
 let gemLights = [];
 let torchLights = [];
 let treeTrunks = []; // {x, z} positions for collision
-let gameState = "playing"; // playing | levelComplete | transitioning | victory
+let gameState = "playing"; // playing | levelComplete | transitioning | victory | celebration
 let portalMesh = null;
 
 // ─── Text-to-Speech ──────────────────────────────────────────────────────────
@@ -955,7 +955,7 @@ window.addEventListener("keydown", (e) => {
             loadLevel(currentLevelIndex + 1);
           }
         } else if (gameState === "victory") {
-          // Game over, could restart
+          startCelebration();
         }
       } else {
         document.getElementById("dialog-text").textContent = dialogLines[dialogIndex];
@@ -1184,13 +1184,411 @@ function drawMinimap() {
   mctx.stroke();
 }
 
+// ─── Celebration Scene ───────────────────────────────────────────────────────
+let celebrationActive = false;
+let celebrationGroup = null;
+let fireworkParticles = [];
+let celebrationNPCs = [];
+let celebrationMusic = null;
+
+function startCelebration() {
+  celebrationActive = true;
+  gameState = "celebration";
+  dialogActive = false;
+  speechSynthesis.cancel();
+  document.getElementById("dialog-box").classList.add("hidden");
+  document.getElementById("minimapCanvas").style.display = "none";
+  document.getElementById("crosshair").style.display = "none";
+
+  // Clean up current level
+  if (levelGroup) {
+    levelGroup.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (obj.material.map) obj.material.map.dispose();
+        obj.material.dispose();
+      }
+    });
+    scene.remove(levelGroup);
+  }
+  const toRemove = [];
+  scene.traverse((obj) => { if (obj.isLight && obj !== camera) toRemove.push(obj); });
+  toRemove.forEach(l => scene.remove(l));
+
+  celebrationGroup = new THREE.Group();
+
+  // Sky and fog
+  scene.fog = new THREE.FogExp2(0x0a0a30, 0.015);
+  scene.background = new THREE.Color(0x0a0a30);
+
+  // Ground — large festive courtyard
+  const groundGeo = new THREE.PlaneGeometry(60, 60);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a6a3a, roughness: 0.9 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  celebrationGroup.add(ground);
+
+  // Stone dance floor in center
+  const floorGeo = new THREE.CylinderGeometry(8, 8, 0.05, 32);
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x8a8299, roughness: 0.7 });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.position.y = 0.03;
+  floor.receiveShadow = true;
+  celebrationGroup.add(floor);
+
+  // Lighting — warm festive
+  const ambient = new THREE.AmbientLight(0x2a2040, 0.4);
+  scene.add(ambient);
+  const hemi = new THREE.HemisphereLight(0x2244aa, 0x553311, 0.5);
+  scene.add(hemi);
+
+  // Colored spotlights
+  const spotColors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff, 0x44ffff];
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const pl = new THREE.PointLight(spotColors[i], 2.0, 20);
+    pl.position.set(Math.cos(angle) * 6, 4, Math.sin(angle) * 6);
+    scene.add(pl);
+  }
+
+  // Central golden light
+  const centerLight = new THREE.PointLight(0xffd700, 3.0, 25);
+  centerLight.position.set(0, 6, 0);
+  scene.add(centerLight);
+
+  // Torch poles around the courtyard
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    const r = 10;
+    const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 3, 6);
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.set(Math.cos(angle) * r, 1.5, Math.sin(angle) * r);
+    celebrationGroup.add(pole);
+
+    const torchLight = new THREE.PointLight(0xff8833, 1.5, 8);
+    torchLight.position.set(Math.cos(angle) * r, 3.2, Math.sin(angle) * r);
+    scene.add(torchLight);
+  }
+
+  // Collect all NPC definitions from all levels
+  const allNPCDefs = [];
+  for (const level of levels) {
+    for (const npc of level.npcs) {
+      allNPCDefs.push(npc);
+    }
+  }
+
+  // Place NPCs in a circle, dancing
+  celebrationNPCs = [];
+  const npcCount = allNPCDefs.length;
+  const circleR = 5.5;
+  for (let i = 0; i < npcCount; i++) {
+    const angle = (i / npcCount) * Math.PI * 2;
+    const npcDef = allNPCDefs[i];
+    const npcGroup = buildNPC(npcDef);
+    npcGroup.position.set(Math.cos(angle) * circleR, 0, Math.sin(angle) * circleR);
+    npcGroup.rotation.y = angle + Math.PI; // face center
+    celebrationGroup.add(npcGroup);
+    celebrationNPCs.push({ mesh: npcGroup, baseAngle: angle, radius: circleR, phase: i * 0.7 });
+  }
+
+  // Princess in the center (taller, with crown)
+  const princessDef = {
+    name: "הנסיכה",
+    bodyColor: 0xd4af37,
+    capeColor: 0xffd700,
+    height: 1.7,
+  };
+  const princess = buildNPC(princessDef);
+  princess.position.set(0, 0, 0);
+  celebrationGroup.add(princess);
+  celebrationNPCs.push({ mesh: princess, baseAngle: 0, radius: 0, phase: 0, isPrincess: true });
+
+  // Add a crown on the princess
+  const crownGeo = new THREE.CylinderGeometry(0.15, 0.12, 0.12, 6);
+  const crownMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+  const crown = new THREE.Mesh(crownGeo, crownMat);
+  crown.position.y = princessDef.height + 0.05;
+  princess.add(crown);
+  // Crown points
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const pointGeo = new THREE.ConeGeometry(0.03, 0.1, 4);
+    const point = new THREE.Mesh(pointGeo, crownMat);
+    point.position.set(Math.cos(a) * 0.12, princessDef.height + 0.15, Math.sin(a) * 0.12);
+    princess.add(point);
+  }
+
+  // Decorative trees around the edge
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + 0.2;
+    const tree = buildTree(0.8 + Math.random() * 0.5);
+    tree.position.set(Math.cos(angle) * 14, 0, Math.sin(angle) * 14);
+    celebrationGroup.add(tree);
+  }
+
+  scene.add(celebrationGroup);
+
+  // Position camera looking at the scene from above at an angle
+  camera.position.set(0, 8, 14);
+  yaw = Math.PI;
+  pitch = -0.4;
+
+  // Update HUD
+  document.getElementById("hud").style.display = "flex";
+  document.getElementById("gems").textContent = "🎉 חגיגה! 🎉";
+  document.getElementById("zone-name").textContent = "חגיגת הניצחון של הנסיכה";
+
+  // Start fireworks
+  fireworkParticles = [];
+
+  // Start music
+  startCelebrationMusic();
+
+  // Sing the song after a short delay
+  setTimeout(() => {
+    const songLines = [
+      "כל הילדים קופצים, רוקדים,",
+      "צוחקים, משתוללים,",
+      "ביד אחת נניף דגלון,",
+      "אל השמים ננופף לשלום!",
+    ];
+    const songTTS = [
+      "כָּל הַיְלָדִים קוֹפְצִים, רוֹקְדִים,",
+      "צוֹחֲקִים, מִשְׁתּוֹלְלִים,",
+      "בְּיָד אַחַת נָנִיף דִּגְלוֹן,",
+      "אֶל הַשָּׁמַיִם נְנוֹפֵף לְשָׁלוֹם!",
+    ];
+
+    let lineIdx = 0;
+    function speakNextLine() {
+      if (lineIdx >= songLines.length) {
+        // Repeat the song
+        setTimeout(() => { lineIdx = 0; speakNextLine(); }, 3000);
+        return;
+      }
+      const utt = new SpeechSynthesisUtterance(songTTS[lineIdx]);
+      utt.lang = "he-IL";
+      utt.rate = 0.85;
+      utt.pitch = 1.2;
+      if (ttsVoice) utt.voice = ttsVoice;
+      utt.onend = () => { lineIdx++; setTimeout(speakNextLine, 800); };
+      speechSynthesis.speak(utt);
+    }
+    speakNextLine();
+  }, 2000);
+}
+
+function startCelebrationMusic() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    celebrationMusic = ctx;
+
+    // Simple festive melody using oscillators
+    const notes = [
+      // "כל הילדים קופצים רוקדים" — cheerful original melody
+      { f: 523, d: 0.3 }, // C5
+      { f: 523, d: 0.3 }, // C5
+      { f: 587, d: 0.3 }, // D5
+      { f: 659, d: 0.3 }, // E5
+      { f: 659, d: 0.3 }, // E5
+      { f: 587, d: 0.3 }, // D5
+      { f: 523, d: 0.3 }, // C5
+      { f: 587, d: 0.6 }, // D5
+      { f: 523, d: 0.3 }, // C5
+      { f: 523, d: 0.3 }, // C5
+      { f: 587, d: 0.3 }, // D5
+      { f: 659, d: 0.3 }, // E5
+      { f: 587, d: 0.3 }, // D5
+      { f: 523, d: 0.3 }, // C5
+      { f: 494, d: 0.6 }, // B4
+      { f: 523, d: 0.3 }, // C5
+      { f: 587, d: 0.3 }, // D5
+      { f: 587, d: 0.3 }, // D5
+      { f: 523, d: 0.3 }, // C5
+      { f: 494, d: 0.3 }, // B4
+      { f: 440, d: 0.3 }, // A4
+      { f: 440, d: 0.3 }, // A4
+      { f: 494, d: 0.3 }, // B4
+      { f: 523, d: 0.6 }, // C5
+      { f: 659, d: 0.3 }, // E5
+      { f: 587, d: 0.3 }, // D5
+      { f: 523, d: 0.3 }, // C5
+      { f: 494, d: 0.3 }, // B4
+      { f: 523, d: 0.3 }, // C5
+      { f: 587, d: 0.3 }, // D5
+      { f: 523, d: 0.8 }, // C5
+    ];
+
+    function playMelody(startTime) {
+      let t = startTime;
+      for (const note of notes) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.value = note.f;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.15, t + 0.05);
+        gain.gain.linearRampToValueAtTime(0.12, t + note.d * 0.7);
+        gain.gain.linearRampToValueAtTime(0, t + note.d);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + note.d + 0.05);
+        t += note.d;
+
+        // Add harmony (a fifth up, quieter)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "sine";
+        osc2.frequency.value = note.f * 1.5;
+        gain2.gain.setValueAtTime(0, t - note.d);
+        gain2.gain.linearRampToValueAtTime(0.05, t - note.d + 0.05);
+        gain2.gain.linearRampToValueAtTime(0, t);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(t - note.d);
+        osc2.stop(t + 0.05);
+      }
+      // Loop the melody
+      setTimeout(() => {
+        if (celebrationActive) playMelody(ctx.currentTime + 0.5);
+      }, (t - startTime) * 1000 + 1000);
+    }
+
+    // Bass drum beat
+    function playBeat(startTime) {
+      const beatInterval = 0.6;
+      for (let i = 0; i < 32; i++) {
+        const t = startTime + i * beatInterval;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(80, t);
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.25);
+      }
+      setTimeout(() => {
+        if (celebrationActive) playBeat(ctx.currentTime);
+      }, 32 * beatInterval * 1000);
+    }
+
+    playMelody(ctx.currentTime + 0.5);
+    playBeat(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.log("Audio not available:", e);
+  }
+}
+
+function spawnFirework() {
+  const x = (Math.random() - 0.5) * 20;
+  const z = (Math.random() - 0.5) * 20;
+  const burstY = 8 + Math.random() * 6;
+  const color = new THREE.Color().setHSL(Math.random(), 1, 0.6);
+  const particleCount = 40 + Math.floor(Math.random() * 30);
+
+  for (let i = 0; i < particleCount; i++) {
+    const geo = new THREE.SphereGeometry(0.06, 4, 4);
+    const mat = new THREE.MeshBasicMaterial({ color: color });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.set(x, burstY, z);
+
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    const speed = 2 + Math.random() * 4;
+    p.userData.vx = Math.sin(phi) * Math.cos(theta) * speed;
+    p.userData.vy = Math.cos(phi) * speed;
+    p.userData.vz = Math.sin(phi) * Math.sin(theta) * speed;
+    p.userData.life = 1.5 + Math.random() * 1.5;
+    p.userData.age = 0;
+
+    scene.add(p);
+    fireworkParticles.push(p);
+  }
+
+  // Flash light at burst point
+  const flash = new THREE.PointLight(color, 5, 20);
+  flash.position.set(x, burstY, z);
+  scene.add(flash);
+  setTimeout(() => { scene.remove(flash); }, 300);
+}
+
+function updateCelebration(dt) {
+  if (!celebrationActive) return;
+  const t = clock.getElapsedTime();
+
+  // Animate NPCs — dancing (bobbing + swaying + circling)
+  for (const npc of celebrationNPCs) {
+    if (npc.isPrincess) {
+      // Princess spins slowly in center
+      npc.mesh.rotation.y = t * 0.8;
+      npc.mesh.position.y = Math.sin(t * 3 + npc.phase) * 0.15;
+    } else {
+      // NPCs dance around in circle, bobbing
+      const circleSpeed = 0.3;
+      const newAngle = npc.baseAngle + t * circleSpeed;
+      npc.mesh.position.x = Math.cos(newAngle) * npc.radius;
+      npc.mesh.position.z = Math.sin(newAngle) * npc.radius;
+      npc.mesh.position.y = Math.abs(Math.sin(t * 4 + npc.phase)) * 0.3; // jumping
+      npc.mesh.rotation.y = newAngle + Math.PI + Math.sin(t * 2 + npc.phase) * 0.3; // face center + sway
+    }
+  }
+
+  // Camera slowly orbits the scene
+  const camAngle = t * 0.15;
+  const camR = 12 + Math.sin(t * 0.2) * 3;
+  const camH = 6 + Math.sin(t * 0.3) * 2;
+  camera.position.set(Math.cos(camAngle) * camR, camH, Math.sin(camAngle) * camR);
+  camera.lookAt(0, 1.5, 0);
+
+  // Fireworks — spawn every ~1.5 seconds
+  if (Math.random() < dt * 0.7) {
+    spawnFirework();
+  }
+
+  // Update firework particles
+  for (let i = fireworkParticles.length - 1; i >= 0; i--) {
+    const p = fireworkParticles[i];
+    p.userData.age += dt;
+    if (p.userData.age >= p.userData.life) {
+      scene.remove(p);
+      p.geometry.dispose();
+      p.material.dispose();
+      fireworkParticles.splice(i, 1);
+      continue;
+    }
+    p.position.x += p.userData.vx * dt;
+    p.position.y += p.userData.vy * dt;
+    p.position.z += p.userData.vz * dt;
+    p.userData.vy -= 3 * dt; // gravity
+    p.userData.vx *= 0.98;
+    p.userData.vz *= 0.98;
+    // Fade out
+    const fade = 1 - (p.userData.age / p.userData.life);
+    p.material.opacity = fade;
+    p.material.transparent = true;
+    p.scale.setScalar(fade);
+  }
+}
+
 // ─── Game Loop ───────────────────────────────────────────────────────────────
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
-  update(dt);
+  if (celebrationActive) {
+    updateCelebration(dt);
+  } else {
+    update(dt);
+  }
   renderer.render(scene, camera);
-  if (showMinimap) drawMinimap();
+  if (showMinimap && !celebrationActive) drawMinimap();
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
@@ -1225,6 +1623,14 @@ document.getElementById("startBtn").addEventListener("click", () => {
   });
 
   initTTS();
-  loadLevel(0);
+
+  // Check for displayParty query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("displayParty") === "1") {
+    loadLevel(0); // Need a level loaded for buildNPC to work
+    startCelebration();
+  } else {
+    loadLevel(0);
+  }
   animate();
 });
