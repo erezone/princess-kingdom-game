@@ -8,17 +8,17 @@
 </head>
 <body>
   <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
+    <div id="renderer-wrap"></div>
 
     <div id="start-screen">
       <h1>👑 הרפתקת הנסיכה בממלכה 👑</h1>
-      <p class="subtitle">משחק גוף ראשון בסגנון רטרו</p>
+      <p class="subtitle">משחק תלת-מימדי בגוף ראשון</p>
       <p>חקרי את הטירה, הכפר והיער הקסום — אספי את כל אבני החן!</p>
       <div class="controls-info">
         <p><strong>בקרה:</strong></p>
-        <p>W/S או ↑↓ — הליכה קדימה/אחורה</p>
+        <p>W / ↑ — קדימה &nbsp;&nbsp; S / ↓ — אחורה</p>
+        <p>A — הצידה שמאלה &nbsp;&nbsp; D — הצידה ימינה</p>
         <p>עכבר — הסתכלות (לחצי על המסך)</p>
-        <p>A/D או ←→ — סיבוב</p>
         <p>רווח — דיבור עם דמויות</p>
         <p>M — מפה</p>
       </div>
@@ -38,8 +38,15 @@
       <div id="dialog-prompt">לחצי רווח להמשיך</div>
     </div>
 
-    <div id="crosshair">+</div>
+    <div id="crosshair">
+      <div class="ch ch-h"></div>
+      <div class="ch ch-v"></div>
+    </div>
+
+    <canvas id="minimapCanvas"></canvas>
   </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
