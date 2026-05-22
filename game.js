@@ -66,21 +66,21 @@ const WALL_DEFS = {
 // ─── NPCs ────────────────────────────────────────────────────────────────────
 const npcDefs = [
   { x: 4, z: 2, name: "המלך אלדריק", bodyColor: 0x6a1b9a, capeColor: 0x8e24aa, height: 1.8,
-    dialog: ["!ברוכה הבאה, נסיכה יקרה שלי", "הממלכה זקוקה לעזרתך.", "אורות מוזרים נראו ביער הקסום.", "!אספי את אבני החן הקסומות כדי להחזיר את השלום"] },
+    dialog: ["ברוכה הבאה, נסיכה יקרה שלי!", "הממלכה זקוקה לעזרתך.", "אורות מוזרים נראו ביער הקסום.", "אספי את אבני החן הקסומות כדי להחזיר את השלום!"] },
   { x: 2, z: 5, name: "היועצת המלכותית מירה", bodyColor: 0x1565c0, capeColor: 0x1976d2, height: 1.7,
-    dialog: ["הוד מעלתך, אבני החן פזורות ברחבי הממלכה.", ".דברי עם התושבים — אולי הם יודעים היכן למצוא אותן"] },
+    dialog: ["הוד מעלתך, אבני החן פזורות ברחבי הממלכה.", "דברי עם התושבים — אולי הם יודעים היכן למצוא אותן."] },
   { x: 10, z: 10, name: "האופה רוזלינד", bodyColor: 0xd4a054, capeColor: 0xe8c170, height: 1.6,
-    dialog: ["!אוי, נסיכה! תודה לאל שבאת", "ראיתי אבן חן נוצצת ליד הגינה.", "!היזהרי ביער — הוא מלא הפתעות"] },
+    dialog: ["אוי, נסיכה! תודה לאל שבאת!", "ראיתי אבן חן נוצצת ליד הגינה.", "היזהרי ביער — הוא מלא הפתעות!"] },
   { x: 4, z: 11, name: "השומר תומס", bodyColor: 0x546e7a, capeColor: 0x78909c, height: 1.9,
-    dialog: ["!הוד מעלתך! השביל דרומה ליער פתוח", "שמעתי לחישות על אוצר חבוי בין העצים.", "!הישארי על השבילים ותהיי בטוחה"] },
+    dialog: ["הוד מעלתך! השביל דרומה ליער פתוח!", "שמעתי לחישות על אוצר חבוי בין העצים.", "הישארי על השבילים ותהיי בטוחה!"] },
   { x: 11, z: 14, name: "אלרה הקטנה", bodyColor: 0x43a047, capeColor: 0x66bb6a, height: 1.2,
-    dialog: ["!נסיכה! נסיכה! את כל כך יפה", "מצאתי אבן נוצצת אבל אמא אמרה להשאיר אותה.", "?את תמצאי את כל אבני החן הקסומות? בבקשה"] },
+    dialog: ["נסיכה! נסיכה! את כל כך יפה!", "מצאתי אבן נוצצת אבל אמא אמרה להשאיר אותה.", "את תמצאי את כל אבני החן הקסומות? בבקשה!"] },
   { x: 3, z: 18, name: "הגננת פלורה", bodyColor: 0x2e7d32, capeColor: 0x4caf50, height: 1.65,
-    dialog: ["הגינה המלכותית מלאה בסודות!", "חפשי בין הפרחים — אבן חן מתחבאת כאן.", ".הפרחים לוחשים לי שאת בדרך הנכונה"] },
+    dialog: ["הגינה המלכותית מלאה בסודות!", "חפשי בין הפרחים — אבן חן מתחבאת כאן.", "הפרחים לוחשים לי שאת בדרך הנכונה."] },
   { x: 19, z: 3, name: "פיית היער לומה", bodyColor: 0x7b1fa2, capeColor: 0xce93d8, height: 1.4,
-    dialog: ["!✨ ברוכה הבאה ליער הקסום, נסיכה", "העצים העתיקים מחזיקים סודות רבים.", "!אספי את כל אבני החן כדי להסיר את הצל מהארץ הזו"] },
+    dialog: ["ברוכה הבאה ליער הקסום, נסיכה! ✨", "העצים העתיקים מחזיקים סודות רבים.", "אספי את כל אבני החן כדי להסיר את הצל מהארץ הזו!"] },
   { x: 20, z: 19, name: "הנזיר הזקן סדריק", bodyColor: 0x4e342e, capeColor: 0x6d4c41, height: 1.75,
-    dialog: ["!אה, הנסיכה מעזה להיכנס ליער העמוק", "חייתי כאן עשרות שנים, צופה ביער משתנה.", ".אספי את כולן והיער ישיר שוב"] },
+    dialog: ["אה, הנסיכה מעזה להיכנס ליער העמוק!", "חייתי כאן עשרות שנים, צופה ביער משתנה.", "אספי את כולן והיער ישיר שוב."] },
 ];
 
 // ─── Gems ────────────────────────────────────────────────────────────────────
@@ -104,6 +104,39 @@ let showMinimap = true;
 let dialogActive = false;
 let dialogLines = [];
 let dialogIndex = 0;
+
+// ─── Text-to-Speech ──────────────────────────────────────────────────────────
+let ttsVoice = null;
+
+function initTTS() {
+  const pickVoice = () => {
+    const voices = speechSynthesis.getVoices();
+    // Prefer Hebrew voice
+    ttsVoice = voices.find(v => v.lang.startsWith("he")) || null;
+    if (!ttsVoice) {
+      // Fallback: any voice that can handle Hebrew
+      ttsVoice = voices.find(v => v.lang.startsWith("he-IL")) || voices[0] || null;
+    }
+  };
+  pickVoice();
+  speechSynthesis.addEventListener("voiceschanged", pickVoice);
+}
+
+function speak(text) {
+  // Cancel any ongoing speech
+  speechSynthesis.cancel();
+
+  // Strip emojis for cleaner speech
+  const clean = text.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}✨🎉]/gu, "").trim();
+  if (!clean) return;
+
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.lang = "he-IL";
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  if (ttsVoice) utterance.voice = ttsVoice;
+  speechSynthesis.speak(utterance);
+}
 
 const npcMeshes = [];
 const gemMeshes = [];
@@ -487,8 +520,8 @@ function buildScene() {
     const group = new THREE.Group();
 
     // Diamond shape (two pyramids)
-    const topGeo = new THREE.ConeGeometry(0.15, 0.2, 6);
-    const botGeo = new THREE.ConeGeometry(0.15, 0.12, 6);
+    const topGeo = new THREE.ConeGeometry(0.35, 0.45, 8);
+    const botGeo = new THREE.ConeGeometry(0.35, 0.25, 8);
     const gemMat = new THREE.MeshStandardMaterial({
       color: 0x4db8ff,
       emissive: 0x2288cc,
@@ -511,7 +544,7 @@ function buildScene() {
     gemMeshes.push(group);
 
     // Point light for gem glow
-    const glow = new THREE.PointLight(0x4488ff, 0.8, 3);
+    const glow = new THREE.PointLight(0x4488ff, 1.2, 5);
     glow.position.set(g.x, 1.0, g.z);
     scene.add(glow);
     gemLights.push(glow);
@@ -529,8 +562,10 @@ window.addEventListener("keydown", (e) => {
       if (dialogIndex >= dialogLines.length) {
         dialogActive = false;
         document.getElementById("dialog-box").classList.add("hidden");
+        speechSynthesis.cancel();
       } else {
         document.getElementById("dialog-text").textContent = dialogLines[dialogIndex];
+        speak(dialogLines[dialogIndex]);
       }
     } else {
       tryTalk();
@@ -560,6 +595,7 @@ function tryTalk() {
       box.classList.remove("hidden");
       document.getElementById("dialog-speaker").textContent = npc.name;
       document.getElementById("dialog-text").textContent = npc.dialog[0];
+      speak(npc.dialog[0]);
       return;
     }
   }
@@ -681,16 +717,17 @@ function update(dt) {
 function showVictory() {
   dialogActive = true;
   dialogLines = [
-    "✨ !אספת את כל אבני החן הקסומות ✨",
-    "!הממלכה שבה לתפארתה המלאה",
-    "!העם חוגג את הנסיכה האהובה",
-    "🎉 !כל הכבוד — סיימת את ההרפתקה 🎉",
+    "אספת את כל אבני החן הקסומות! ✨",
+    "הממלכה שבה לתפארתה המלאה!",
+    "העם חוגג את הנסיכה האהובה!",
+    "כל הכבוד — סיימת את ההרפתקה! 🎉",
   ];
   dialogIndex = 0;
   const box = document.getElementById("dialog-box");
   box.classList.remove("hidden");
   document.getElementById("dialog-speaker").textContent = "✨ קסם הממלכה ✨";
   document.getElementById("dialog-text").textContent = dialogLines[0];
+  speak(dialogLines[0]);
 }
 
 function updateHUD() {
@@ -811,6 +848,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   });
 
   buildScene();
+  initTTS();
   updateHUD();
   document.getElementById("zone-name").textContent = getZoneName(camera.position.x, camera.position.z);
 
