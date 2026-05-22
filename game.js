@@ -658,18 +658,79 @@ function loadLevel(index) {
     }
   }
 
-  // Torches
+  // Chandeliers
   for (const pos of level.torches) {
     const light = new THREE.PointLight(0xff8833, 1.2, 6);
     light.position.set(pos[0], pos[1], pos[2]);
     scene.add(light);
     torchLights.push(light);
 
-    const flameGeo = new THREE.SphereGeometry(0.06, 4, 4);
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
-    const flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.copy(light.position);
-    levelGroup.add(flame);
+    const chandGroup = new THREE.Group();
+    chandGroup.position.set(pos[0], pos[1], pos[2]);
+
+    // Chain hanging from ceiling
+    const chainMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, metalness: 0.7, roughness: 0.3 });
+    const chainGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.8, 4);
+    const chain = new THREE.Mesh(chainGeo, chainMat);
+    chain.position.y = 0.5;
+    chandGroup.add(chain);
+
+    // Central hub
+    const hubMat = new THREE.MeshStandardMaterial({ color: 0xc8a24a, metalness: 0.8, roughness: 0.2 });
+    const hubGeo = new THREE.SphereGeometry(0.06, 6, 6);
+    const hub = new THREE.Mesh(hubGeo, hubMat);
+    chandGroup.add(hub);
+
+    // Ring
+    const ringGeo = new THREE.TorusGeometry(0.2, 0.015, 6, 12);
+    const ring = new THREE.Mesh(ringGeo, hubMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = -0.05;
+    chandGroup.add(ring);
+
+    // Arms with candles
+    const armCount = 5;
+    for (let a = 0; a < armCount; a++) {
+      const angle = (a / armCount) * Math.PI * 2;
+      const armLen = 0.22;
+
+      // Arm
+      const armGeo = new THREE.CylinderGeometry(0.01, 0.012, armLen, 4);
+      const arm = new THREE.Mesh(armGeo, hubMat);
+      arm.position.set(Math.cos(angle) * armLen * 0.5, -0.05, Math.sin(angle) * armLen * 0.5);
+      arm.rotation.z = Math.cos(angle) * 1.2;
+      arm.rotation.x = Math.sin(angle) * 1.2;
+      chandGroup.add(arm);
+
+      // Candle holder (cup)
+      const cupGeo = new THREE.CylinderGeometry(0.025, 0.015, 0.03, 6);
+      const cup = new THREE.Mesh(cupGeo, hubMat);
+      cup.position.set(Math.cos(angle) * armLen, -0.08, Math.sin(angle) * armLen);
+      chandGroup.add(cup);
+
+      // Candle
+      const candleGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.08, 6);
+      const candleMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e0 });
+      const candle = new THREE.Mesh(candleGeo, candleMat);
+      candle.position.set(Math.cos(angle) * armLen, -0.02, Math.sin(angle) * armLen);
+      chandGroup.add(candle);
+
+      // Flame
+      const flameGeo = new THREE.SphereGeometry(0.018, 4, 4);
+      const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(Math.cos(angle) * armLen, 0.03, Math.sin(angle) * armLen);
+      chandGroup.add(flame);
+    }
+
+    // Bottom ornament
+    const ornGeo = new THREE.ConeGeometry(0.03, 0.06, 5);
+    const orn = new THREE.Mesh(ornGeo, hubMat);
+    orn.position.y = -0.15;
+    orn.rotation.x = Math.PI;
+    chandGroup.add(orn);
+
+    levelGroup.add(chandGroup);
   }
 
   // NPCs
@@ -951,27 +1012,76 @@ function spawnPortal() {
   }
 
   const group = new THREE.Group();
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x6a3a1a, roughness: 0.8 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xc8a24a, metalness: 0.6, roughness: 0.3 });
 
-  // Portal ring
-  const ringGeo = new THREE.TorusGeometry(0.6, 0.08, 8, 16);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 1.5;
-  group.add(ring);
+  // Door frame — two pillars + arch
+  const pillarGeo = new THREE.BoxGeometry(0.15, 2.8, 0.15);
+  const lPillar = new THREE.Mesh(pillarGeo, frameMat);
+  lPillar.position.set(-0.5, 1.4, 0);
+  lPillar.castShadow = true;
+  group.add(lPillar);
+  const rPillar = new THREE.Mesh(pillarGeo, frameMat);
+  rPillar.position.set(0.5, 1.4, 0);
+  rPillar.castShadow = true;
+  group.add(rPillar);
 
-  // Portal inner glow
-  const innerGeo = new THREE.CircleGeometry(0.55, 16);
-  const innerMat = new THREE.MeshBasicMaterial({ color: 0x44aaff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
-  const inner = new THREE.Mesh(innerGeo, innerMat);
-  inner.rotation.x = Math.PI / 2;
-  inner.position.y = 1.5;
-  group.add(inner);
+  // Arch top
+  const archGeo = new THREE.TorusGeometry(0.5, 0.08, 8, 16, Math.PI);
+  const arch = new THREE.Mesh(archGeo, frameMat);
+  arch.position.set(0, 2.8, 0);
+  arch.rotation.z = Math.PI;
+  group.add(arch);
+
+  // Lintel
+  const lintelGeo = new THREE.BoxGeometry(1.15, 0.12, 0.15);
+  const lintel = new THREE.Mesh(lintelGeo, frameMat);
+  lintel.position.set(0, 2.8, 0);
+  group.add(lintel);
+
+  // Door panels (two halves, slightly ajar)
+  const panelGeo = new THREE.BoxGeometry(0.42, 2.6, 0.06);
+  const lDoor = new THREE.Mesh(panelGeo, woodMat);
+  lDoor.position.set(-0.24, 1.3, 0.08);
+  lDoor.rotation.y = 0.3;
+  lDoor.castShadow = true;
+  group.add(lDoor);
+  const rDoor = new THREE.Mesh(panelGeo, woodMat);
+  rDoor.position.set(0.24, 1.3, 0.08);
+  rDoor.rotation.y = -0.3;
+  rDoor.castShadow = true;
+  group.add(rDoor);
+
+  // Door handles
+  const handleGeo = new THREE.SphereGeometry(0.04, 6, 6);
+  const handleMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.1 });
+  const lHandle = new THREE.Mesh(handleGeo, handleMat);
+  lHandle.position.set(-0.06, 1.3, 0.12);
+  lDoor.add(lHandle);
+  const rHandle = new THREE.Mesh(handleGeo, handleMat);
+  rHandle.position.set(0.06, 1.3, 0.12);
+  rDoor.add(rHandle);
+
+  // Glowing light through doorway
+  const glowGeo = new THREE.PlaneGeometry(0.7, 2.5);
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.set(0, 1.3, 0);
+  group.add(glow);
 
   // Portal light
-  const portalLight = new THREE.PointLight(0x4488ff, 2, 8);
-  portalLight.position.set(0, 1.5, 0);
+  const portalLight = new THREE.PointLight(0x4488ff, 2.5, 8);
+  portalLight.position.set(0, 2, 0);
   group.add(portalLight);
+
+  // Stars/sparkle above door
+  for (let i = 0; i < 5; i++) {
+    const starGeo = new THREE.SphereGeometry(0.03, 4, 4);
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+    const star = new THREE.Mesh(starGeo, starMat);
+    star.position.set((Math.random() - 0.5) * 0.8, 2.9 + Math.random() * 0.3, (Math.random() - 0.5) * 0.2);
+    group.add(star);
+  }
 
   group.position.set(px + 0.5, 0, pz + 0.5);
   group.userData = { mapX: px + 0.5, mapZ: pz + 0.5 };
