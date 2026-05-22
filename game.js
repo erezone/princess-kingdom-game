@@ -658,79 +658,64 @@ function loadLevel(index) {
     }
   }
 
-  // Chandeliers
+  // Wall torches
   for (const pos of level.torches) {
-    const light = new THREE.PointLight(0xff8833, 1.2, 6);
-    light.position.set(pos[0], pos[1], pos[2]);
+    const light = new THREE.PointLight(0xff8833, 1.5, 8);
+    light.position.set(pos[0], pos[1] + 0.3, pos[2]);
     scene.add(light);
     torchLights.push(light);
 
-    const chandGroup = new THREE.Group();
-    chandGroup.position.set(pos[0], pos[1], pos[2]);
+    const torchGroup = new THREE.Group();
+    torchGroup.position.set(pos[0], 0, pos[2]);
 
-    // Chain hanging from ceiling
-    const chainMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, metalness: 0.7, roughness: 0.3 });
-    const chainGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.8, 4);
-    const chain = new THREE.Mesh(chainGeo, chainMat);
-    chain.position.y = 0.5;
-    chandGroup.add(chain);
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.7, roughness: 0.4 });
 
-    // Central hub
-    const hubMat = new THREE.MeshStandardMaterial({ color: 0xc8a24a, metalness: 0.8, roughness: 0.2 });
-    const hubGeo = new THREE.SphereGeometry(0.06, 6, 6);
-    const hub = new THREE.Mesh(hubGeo, hubMat);
-    chandGroup.add(hub);
+    // Wall bracket — L-shaped iron mount
+    const backPlateGeo = new THREE.BoxGeometry(0.12, 0.25, 0.06);
+    const backPlate = new THREE.Mesh(backPlateGeo, ironMat);
+    backPlate.position.y = 1.6;
+    torchGroup.add(backPlate);
 
-    // Ring
-    const ringGeo = new THREE.TorusGeometry(0.2, 0.015, 6, 12);
-    const ring = new THREE.Mesh(ringGeo, hubMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = -0.05;
-    chandGroup.add(ring);
+    const bracketArmGeo = new THREE.BoxGeometry(0.06, 0.06, 0.25);
+    const bracketArm = new THREE.Mesh(bracketArmGeo, ironMat);
+    bracketArm.position.set(0, 1.55, 0.12);
+    torchGroup.add(bracketArm);
 
-    // Arms with candles
-    const armCount = 5;
-    for (let a = 0; a < armCount; a++) {
-      const angle = (a / armCount) * Math.PI * 2;
-      const armLen = 0.22;
+    // Torch cup / holder
+    const cupGeo = new THREE.CylinderGeometry(0.07, 0.05, 0.1, 8);
+    const cup = new THREE.Mesh(cupGeo, ironMat);
+    cup.position.set(0, 1.6, 0.25);
+    torchGroup.add(cup);
 
-      // Arm
-      const armGeo = new THREE.CylinderGeometry(0.01, 0.012, armLen, 4);
-      const arm = new THREE.Mesh(armGeo, hubMat);
-      arm.position.set(Math.cos(angle) * armLen * 0.5, -0.05, Math.sin(angle) * armLen * 0.5);
-      arm.rotation.z = Math.cos(angle) * 1.2;
-      arm.rotation.x = Math.sin(angle) * 1.2;
-      chandGroup.add(arm);
+    // Wooden handle
+    const handleGeo = new THREE.CylinderGeometry(0.03, 0.035, 0.5, 6);
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.9 });
+    const handle = new THREE.Mesh(handleGeo, handleMat);
+    handle.position.set(0, 1.85, 0.25);
+    torchGroup.add(handle);
 
-      // Candle holder (cup)
-      const cupGeo = new THREE.CylinderGeometry(0.025, 0.015, 0.03, 6);
-      const cup = new THREE.Mesh(cupGeo, hubMat);
-      cup.position.set(Math.cos(angle) * armLen, -0.08, Math.sin(angle) * armLen);
-      chandGroup.add(cup);
+    // Wrapped cloth at top
+    const clothGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.12, 6);
+    const clothMat = new THREE.MeshStandardMaterial({ color: 0x8a7050, roughness: 1.0 });
+    const cloth = new THREE.Mesh(clothGeo, clothMat);
+    cloth.position.set(0, 2.05, 0.25);
+    torchGroup.add(cloth);
 
-      // Candle
-      const candleGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.08, 6);
-      const candleMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e0 });
-      const candle = new THREE.Mesh(candleGeo, candleMat);
-      candle.position.set(Math.cos(angle) * armLen, -0.02, Math.sin(angle) * armLen);
-      chandGroup.add(candle);
+    // Flame — larger, visible, teardrop-ish
+    const flameGeo = new THREE.ConeGeometry(0.06, 0.2, 6);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    const flame = new THREE.Mesh(flameGeo, flameMat);
+    flame.position.set(0, 2.22, 0.25);
+    torchGroup.add(flame);
 
-      // Flame
-      const flameGeo = new THREE.SphereGeometry(0.018, 4, 4);
-      const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
-      const flame = new THREE.Mesh(flameGeo, flameMat);
-      flame.position.set(Math.cos(angle) * armLen, 0.03, Math.sin(angle) * armLen);
-      chandGroup.add(flame);
-    }
+    // Inner bright flame core
+    const coreGeo = new THREE.ConeGeometry(0.03, 0.12, 5);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.set(0, 2.2, 0.25);
+    torchGroup.add(core);
 
-    // Bottom ornament
-    const ornGeo = new THREE.ConeGeometry(0.03, 0.06, 5);
-    const orn = new THREE.Mesh(ornGeo, hubMat);
-    orn.position.y = -0.15;
-    orn.rotation.x = Math.PI;
-    chandGroup.add(orn);
-
-    levelGroup.add(chandGroup);
+    levelGroup.add(torchGroup);
   }
 
   // NPCs
